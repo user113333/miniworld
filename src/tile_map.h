@@ -10,6 +10,7 @@ enum class Terrain { water, sand, land, grass };
 struct Tree {
     glm::ivec2 hex;
     unsigned int variant;
+    glm::vec2 offset{}; // Ground offset in hex-radius units, inside the owning tile.
 };
 
 struct TileMap {

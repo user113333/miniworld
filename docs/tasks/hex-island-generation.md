@@ -7,7 +7,9 @@ Branch: `feat/hex-island-generation`
 The user rejected the initial sprite tileset. Start Milestone 1 again:
 regular, unskewed hexagons created at runtime, with exactly one solid color
 per tile. No terrain textures, outlines, shading, or sprite atlas.
-**Milestone 2 adds trees using the user's sprites. Castle is Milestone 3.**
+**Milestone 2 added the user's tree sprites. Milestone 3 is the final milestone:
+smaller trees grouped into forests, with overlaps and lower trees in front.
+There will be no castle.**
 
 The rejected generated sprites, contact sheet, metadata, and asset-generation
 script were removed. The original reference GIF was inspected during initial
@@ -52,7 +54,8 @@ fill requirements override the rejected flattened sprite design.
 - `tree_placement.*`: independent, seeded tree occupancy and sprite variants;
   terrain data is never modified by object placement.
 - `tree_renderer.*`: loads user PNGs, nearest texture filtering, integer physical
-  pixel scaling, bottom-center ground anchors, and back-to-front draw ordering.
+  pixel scaling, bottom-center ground anchors, and back-to-front draw ordering
+  by actual snapped ground Y (including placement offsets), then X for ties.
 - `island_controls.*`: ImGui seed and dimension controls. Generate picks a new
   seed; Regenerate uses the entered seed. Width 12–96, height 12–72;
   default 48x32. ApplicationUi owns visibility via View > Island and the
@@ -68,19 +71,27 @@ fill requirements override the rejected flattened sprite design.
 | --- | --- | --- |
 | 1 | Procedural island, regular solid hexes, minimal seed/dimension controls | Committed: afda00d |
 | 1.5 | Full water background, centered island origin, toolbar window toggle | Committed: 13ec2f7 |
-| 2 | User tree sprites, deterministic placement and density control | Complete; approved for commit |
-| 3 | Castle design and placement | Not started |
-| Later | Camera interaction and other approved refinements | Not started |
+| 2 | User tree sprites, deterministic placement and density control | Committed: 5781bd7 |
+| 3 (final) | Smaller clustered forests and ground-position depth sorting | Complete; approved for commit |
 
 Milestone 2 uses `res/map/tree1.png`, `tree2.png`, and `tree3.png` unchanged.
 All are transparent 8x8 PNGs. CMake copies them alongside the executable.
-At most one tree per grass/land tile; no trees on water or sand. A coordinate
-hash of the world seed determines both placement and variant, so density changes
-retain existing trees and do not reroll the landscape. SDL_LoadPNG needs no new
-dependency. Terrain is drawn first, then trees, then ImGui.
+At most one tree per grass/land tile; no trees on water or sand. Milestone 3
+replaces independent scattering with seeded coherent-noise forest patches.
+Eligible cells are ranked by smooth noise plus a little local variation; density
+selects that fraction of cells, growing existing patches instead of rerolling
+trees. Coordinate hashes fix sprite variants and offsets. SDL_LoadPNG needs no
+new dependency. Terrain is drawn first, then trees, then ImGui.
 
-Milestone 3 will add exactly one inland castle without tree occupancy conflicts.
-Review its visual design first; do not resurrect the rejected castle sprite.
+Milestone 3 allows canopies to overlap adjacent tiles. Each tree gets a stable
+seeded ground offset within its owning hex (at most 0.4 radii on each axis).
+The offset square lies inside the hex's inscribed circle, keeping roots on
+eligible terrain. Following visual feedback, canopy target width was reduced
+from 1.6 to 1.05 tile widths. Trees are smaller and concentrated in forest groups,
+with open terrain between them. Integer physical-pixel scaling and unmodified
+source sprites are preserved.
+Draw order follows actual ground positions so lower trees cover upper trees,
+including trees in the same hex row. No castle or house integration is planned.
 
 ## Validation
 
@@ -130,20 +141,34 @@ Milestone 2:
 - Preview: `/tmp/miniworld-milestone2-preview.png`. User sprites remain untouched.
 - Real desktop appearance and density-slider interaction still need user review.
 
+Milestone 3:
+
+- Passed: Ninja build and 250-map placement checks, including reproducible
+  offsets, roots inside owning hexes, terrain eligibility and unchanged terrain.
+- Passed: pixel colors remain exact at 1x/1.25x/1.5x/2x framebuffer scales;
+  reversing tree storage order produces identical rendering.
+- Passed: a same-row pair with different ground offsets produced 101 opaque
+  overlapping pixels; every overlap matched the lower tree's isolated render.
+  Of these, 40 pixels had distinguishable colors between the two trees.
+- Passed: exact density occupancy and grouped placement. At 20% density across
+  50 normal-size maps, 4,151 of 4,318 trees had at least two tree neighbors (96%).
+- Visually inspected smaller clustered forest preview:
+  `/tmp/miniworld-clustered-forest-preview.png`.
+- Final visual direction and commit approved by the user.
+
 ## Outstanding work / next action
 
-- Milestone 2 is approved. Next: review castle visuals for Milestone 3, then
-  add exactly one seeded inland castle without tree overlap. Await instructions
-  before starting.
-- No castle, camera, grid overlay, or gameplay is implemented.
+- Milestone 3 is approved and completes the project plan. No additional work
+  is planned; await a new user request.
+- Castle is cancelled. Camera, grid overlay, houses, and gameplay are out of scope.
 - Same-color adjacent hexes intentionally merge visually: no grid outlines.
 - Rendering currently builds a small vertex batch each frame; caching can wait
   until measurement justifies it. UI windows overlay the world.
 - Keep unrelated edits to AGENTS.md and the staged `.run/Miniworld.run.xml`
   deletion untouched. Do not commit unrelated files.
 
-## Future improvements (not implemented)
+## Scope boundary
 
-Castle (Milestone 3), camera pan/zoom, optional grid and tile selection,
-terrain variants, multiple islands, animated water, mountains, roads, villages,
-biomes, pathfinding, and world persistence. No gameplay or simulation yet.
+No further milestones. Camera pan/zoom, tile selection, terrain variants,
+multiple islands, animated water, buildings, biomes, pathfinding, persistence,
+and gameplay would require a separate user request.

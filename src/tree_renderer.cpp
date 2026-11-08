@@ -45,19 +45,32 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
     if (view.radius <= 0.0f) {
         return;
     }
-    std::vector<const Tree*> ordered;
-    ordered.reserve(map.trees.size());
-    for (const Tree& tree : map.trees) {
-        ordered.push_back(&tree);
-    }
-    std::sort(ordered.begin(), ordered.end(), [](const Tree* a, const Tree* b) {
-        return a->hex.y == b->hex.y ? a->hex.x < b->hex.x : a->hex.y < b->hex.y;
-    });
-
     glm::vec2 framebuffer_scale;
     SDL_GetRenderScale(renderer, &framebuffer_scale.x, &framebuffer_scale.y);
+    struct PositionedTree {
+        const Tree* tree;
+        glm::vec2 ground;
+    };
+    std::vector<PositionedTree> ordered;
+    ordered.reserve(map.trees.size());
+    for (const Tree& tree : map.trees) {
+        glm::vec2 ground = view.origin + (hex_center(tree.hex) + tree.offset) * view.radius;
+        ground = glm::round(ground * framebuffer_scale) / framebuffer_scale;
+        ordered.push_back({&tree, ground});
+    }
+    std::sort(ordered.begin(), ordered.end(), [](const PositionedTree& a, const PositionedTree& b) {
+        if (a.ground.y != b.ground.y) {
+            return a.ground.y < b.ground.y;
+        }
+        if (a.ground.x != b.ground.x) {
+            return a.ground.x < b.ground.x;
+        }
+        return a.tree->variant < b.tree->variant;
+    });
+
     const float tile_width = glm::sqrt(3.0f) * view.radius;
-    for (const Tree* tree : ordered) {
+    for (const PositionedTree& positioned : ordered) {
+        const Tree* tree = positioned.tree;
         if (tree->variant >= sprites_.size()) {
             continue;
         }
@@ -67,11 +80,11 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
         }
         // Scale source pixels by an integer in the physical framebuffer. The
         // bottom-center is the ground anchor, snapped to that same pixel grid.
+        // Canopies extend beyond their tiles so neighboring trees can overlap.
         const float pixel_scale = glm::max(1.0f, glm::floor(tile_width * framebuffer_scale.x
-                                                          * 0.8f / sprite.size.x));
+                                                          * 1.05f / sprite.size.x));
         const glm::vec2 size = glm::vec2(sprite.size) * pixel_scale / framebuffer_scale;
-        glm::vec2 ground = view.origin + hex_center(tree->hex) * view.radius;
-        ground = glm::round(ground * framebuffer_scale) / framebuffer_scale;
+        const glm::vec2 ground = positioned.ground;
         const SDL_FRect destination{ground.x - size.x * 0.5f, ground.y - size.y, size.x, size.y};
         SDL_RenderTexture(renderer, sprite.texture, nullptr, &destination);
     }
