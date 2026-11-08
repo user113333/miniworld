@@ -7,10 +7,11 @@ Branch: `feat/hex-island-generation`
 The user rejected the initial sprite tileset. Start Milestone 1 again:
 regular, unskewed hexagons created at runtime, with exactly one solid color
 per tile. No terrain textures, outlines, shading, or sprite atlas.
-**Trees and the castle are deferred to Milestone 2.**
+**Milestone 2 adds trees using the user's sprites. Castle is Milestone 3.**
 
 The rejected generated sprites, contact sheet, metadata, and asset-generation
-script were removed. The original `res/map/idea.gif` is preserved.
+script were removed. The original reference GIF was inspected during initial
+work; it is no longer present. Current map assets are the user's three tree PNGs.
 
 ## Goals
 
@@ -48,10 +49,15 @@ fill requirements override the rejected flattened sprite design.
 - `map_renderer.*`: SDL geometry, shared terrain colors and map-view fitting;
   no generation or UI dependencies.
 - `island_demo.*`: game state, settings and Generate/Regenerate actions only.
+- `tree_placement.*`: independent, seeded tree occupancy and sprite variants;
+  terrain data is never modified by object placement.
+- `tree_renderer.*`: loads user PNGs, nearest texture filtering, integer physical
+  pixel scaling, bottom-center ground anchors, and back-to-front draw ordering.
 - `island_controls.*`: ImGui seed and dimension controls. Generate picks a new
   seed; Regenerate uses the entered seed. Width 12–96, height 12–72;
   default 48x32. ApplicationUi owns visibility via View > Island and the
-  window's close button.
+  window's close button. Tree density updates the current world's trees live;
+  default 20%, range 0–100%, with a visible tree count.
 - `main.cpp`: draws the world before ImGui. Map framebuffer scale is applied once;
   ImGui's renderer handles its own framebuffer scaling.
 - Root CMake uses the existing header-only GLM target. No CMake file in `src/`.
@@ -61,13 +67,20 @@ fill requirements override the rejected flattened sprite design.
 | Milestone | Scope | State |
 | --- | --- | --- |
 | 1 | Procedural island, regular solid hexes, minimal seed/dimension controls | Committed: afda00d |
-| 1.5 | Full water background, centered island origin, toolbar window toggle | Complete; approved for commit |
-| 2 | Tree and castle design and deterministic object placement | Not started |
+| 1.5 | Full water background, centered island origin, toolbar window toggle | Committed: 13ec2f7 |
+| 2 | User tree sprites, deterministic placement and density control | Complete; approved for commit |
+| 3 | Castle design and placement | Not started |
 | Later | Camera interaction and other approved refinements | Not started |
 
-Milestone 2 must keep objects separate from terrain: trees on eligible land,
-one inland castle, no shared object occupancy. Review object visuals before
-integrating them. Do not resurrect the rejected sprite assets.
+Milestone 2 uses `res/map/tree1.png`, `tree2.png`, and `tree3.png` unchanged.
+All are transparent 8x8 PNGs. CMake copies them alongside the executable.
+At most one tree per grass/land tile; no trees on water or sand. A coordinate
+hash of the world seed determines both placement and variant, so density changes
+retain existing trees and do not reroll the landscape. SDL_LoadPNG needs no new
+dependency. Terrain is drawn first, then trees, then ImGui.
+
+Milestone 3 will add exactly one inland castle without tree occupancy conflicts.
+Review its visual design first; do not resurrect the rejected castle sprite.
 
 ## Validation
 
@@ -101,11 +114,28 @@ Milestone 1.5:
   corners fitting the viewport. Determinism and water borders remain valid.
 - Visually inspected SDL-rendered preview: `/tmp/miniworld-milestone15-preview.png`.
 
+Milestone 2:
+
+- Passed: Ninja build and independent checks across 250 maps, 50 seeds and five
+  dimension combinations. Deterministic placement and variants, unique eligible
+  tile occupancy, unchanged terrain, zero/full density endpoints, and all three
+  sprite variants checked.
+- Passed: repeat regeneration, live tree-density update without terrain changes,
+  reverse-input draw ordering producing identical output, exact sprite colors
+  without smoothing at 1x/1.25x/1.5x/2x framebuffer scales, and Island
+  close/reopen UI checks.
+- Tree anchors snap to framebuffer pixels. Nearest filtering is set only on the
+  three tree textures; ImGui filtering is unchanged. Pixel scale is integral,
+  including on high-DPI framebuffers.
+- Preview: `/tmp/miniworld-milestone2-preview.png`. User sprites remain untouched.
+- Real desktop appearance and density-slider interaction still need user review.
+
 ## Outstanding work / next action
 
-- Milestone 1.5 is approved. Next: Milestone 2 tree/castle design review, then
-  deterministic placement after visual approval. Await instructions before starting.
-- No trees, castle, object data, camera, grid overlay, or gameplay is implemented.
+- Milestone 2 is approved. Next: review castle visuals for Milestone 3, then
+  add exactly one seeded inland castle without tree overlap. Await instructions
+  before starting.
+- No castle, camera, grid overlay, or gameplay is implemented.
 - Same-color adjacent hexes intentionally merge visually: no grid outlines.
 - Rendering currently builds a small vertex batch each frame; caching can wait
   until measurement justifies it. UI windows overlay the world.
@@ -114,6 +144,6 @@ Milestone 1.5:
 
 ## Future improvements (not implemented)
 
-Trees/castle (Milestone 2), camera pan/zoom, optional grid and tile selection,
+Castle (Milestone 3), camera pan/zoom, optional grid and tile selection,
 terrain variants, multiple islands, animated water, mountains, roads, villages,
 biomes, pathfinding, and world persistence. No gameplay or simulation yet.

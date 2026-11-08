@@ -33,6 +33,8 @@ add_executable(miniworld
     src/map_renderer.cpp
     src/island_demo.cpp
     src/island_controls.cpp
+    src/tree_placement.cpp
+    src/tree_renderer.cpp
 )
 target_compile_features(miniworld PRIVATE cxx_std_17)
 target_link_libraries(miniworld PRIVATE imgui glm::glm)
@@ -47,3 +49,11 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/res/fonts/Cozette-LICENSE
     COPYONLY
 )
+
+foreach(tree IN ITEMS tree1 tree2 tree3)
+    configure_file(
+        ${PROJECT_SOURCE_DIR}/res/map/${tree}.png
+        ${CMAKE_CURRENT_BINARY_DIR}/res/map/${tree}.png
+        COPYONLY
+    )
+endforeach()

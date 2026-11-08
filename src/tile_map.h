@@ -7,11 +7,17 @@
 
 enum class Terrain { water, sand, land, grass };
 
+struct Tree {
+    glm::ivec2 hex;
+    unsigned int variant;
+};
+
 struct TileMap {
     int width;
     int height;
     std::uint32_t seed;
     std::vector<Terrain> tiles;
+    std::vector<Tree> trees;
 
     // World (0, 0) is the middle storage tile, not the upper-left corner.
     glm::ivec2 storage_origin() const

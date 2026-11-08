@@ -18,6 +18,12 @@ void draw_island_controls(IslandDemo& island, bool& open)
         ImGui::InputInt("Height", &settings.height);
         settings.width = std::clamp(settings.width, 12, 96);
         settings.height = std::clamp(settings.height, 12, 72);
+        float density_percent = settings.tree_density * 100.0f;
+        if (ImGui::SliderFloat("Tree density", &density_percent, 0.0f, 100.0f, "%.0f%%")) {
+            settings.tree_density = density_percent / 100.0f;
+            island.update_trees();
+        }
+        ImGui::Text("Trees: %zu", island.map().trees.size());
         if (ImGui::Button("Generate")) {
             island.generate();
         }

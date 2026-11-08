@@ -1,5 +1,6 @@
 #include "island_demo.h"
 #include "island_generator.h"
+#include "tree_placement.h"
 
 IslandDemo::IslandDemo()
 {
@@ -15,4 +16,10 @@ void IslandDemo::generate()
 void IslandDemo::regenerate()
 {
     map_ = generate_island(settings.width, settings.height, settings.seed);
+    update_trees();
+}
+
+void IslandDemo::update_trees()
+{
+    place_trees(map_, settings.tree_density);
 }

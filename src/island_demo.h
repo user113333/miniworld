@@ -8,6 +8,7 @@ struct IslandSettings {
     int width = 48;
     int height = 32;
     std::uint32_t seed = 0;
+    float tree_density = 0.20f;
 };
 
 class IslandDemo {
@@ -15,6 +16,7 @@ public:
     IslandDemo();
     void generate();
     void regenerate();
+    void update_trees();
     const TileMap& map() const { return map_; }
 
     IslandSettings settings;

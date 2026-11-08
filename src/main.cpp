@@ -1,6 +1,7 @@
 #include "application_ui.h"
 #include "island_demo.h"
 #include "map_renderer.h"
+#include "tree_renderer.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -51,8 +52,10 @@ int main(int, char**)
         return 1;
     }
 
+    TreeRenderer trees;
+    const bool trees_ready = trees.initialize(renderer);
     IslandDemo island;
-    bool running = true;
+    bool running = trees_ready;
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -90,16 +93,18 @@ int main(int, char**)
         SDL_RenderClear(renderer);
         SDL_SetRenderScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         draw_map(renderer, island.map(), view);
+        trees.draw(renderer, island.map(), view);
         SDL_SetRenderScale(renderer, 1.0f, 1.0f);
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
 
+    trees.shutdown();
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    return 0;
+    return trees_ready ? 0 : 1;
 }
