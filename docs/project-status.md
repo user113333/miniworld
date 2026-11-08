@@ -62,7 +62,8 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
 - The independent 4,096-slot particle pool advances at 32 Hz. Flames/smoke/embers
   use stable source IDs, bounded residual tails and grant-based round-robin fairness.
 - Actor drawing/picking shares depth order, source alpha masks, snapped anchors and
-  integer physical-pixel scaling. Foreground actors cover background fire groups.
+  smooth sizing proportional to camera zoom. Particle footprints retain integer
+  physical-pixel sizes. Foreground actors cover background fire groups.
 - Island contains seed, dimensions, initial density and Generate/Regenerate.
   Simulation contains speed/time, pause, live counts and exclusive selection/fire tools.
   View reopens either window. Escape exits tools; ImGui capture blocks world clicks.

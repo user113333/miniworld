@@ -67,8 +67,8 @@ void check_footprint(SoftwareCanvas& canvas, const ParticleSystem& system,
 
     // Expected half-open square in physical framebuffer pixels. SDL's software
     // quad path used to lose an edge when logical width*DPI rounded below an integer.
-    const float art_scale = glm::max(1.0f, glm::floor(glm::sqrt(3.0f) * view.radius *
-                                        view.framebuffer_scale.x * 1.05f / 8.0f));
+    const float art_scale = glm::sqrt(3.0f) * view.radius *
+                            view.framebuffer_scale.x * 1.05f / 8.0f;
     const int side = static_cast<int>(glm::max(1.0f, glm::round(before.size * art_scale)));
     const glm::ivec2 minimum(glm::round((view.origin + before.position * view.radius)
                                        * view.framebuffer_scale - side * 0.5f));

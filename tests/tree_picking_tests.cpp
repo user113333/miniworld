@@ -37,15 +37,21 @@ void check_frontmost_opaque_pixel()
                  "Ground depth did not put the lower tree in front");
     test::expect(test::pick_id(scene, sprites, {117, 84}) == front.id,
                  "Overlap did not choose the visible front tree");
-    sprites[1].alpha[2 * 8 + 6] = 0;
+    const auto source_pixel = [](const ActorSceneEntry& entry) {
+        const glm::ivec2 source(glm::floor((glm::vec2{117, 84} - entry.minimum) / entry.size * 8.0f));
+        return source.y * 8 + source.x;
+    };
+    const int front_pixel = source_pixel(scene.back());
+    const int back_pixel = source_pixel(scene.front());
+    sprites[1].alpha[front_pixel] = 0;
     test::expect(test::pick_id(scene, sprites, {117, 84}) == back.id,
                  "Transparent source pixel blocked the tree behind it");
-    sprites[0].alpha[5 * 8 + 1] = 0;
+    sprites[0].alpha[back_pixel] = 0;
     test::expect(test::pick_id(scene, sprites, {117, 84}) == 0,
                  "Transparent pixels returned a tree");
     std::reverse(map.trees.begin(), map.trees.end());
     build_actor_scene(map, view, sprites, scene);
-    sprites[1].alpha[2 * 8 + 6] = 255;
+    sprites[1].alpha[front_pixel] = 255;
     test::expect(test::pick_id(scene, sprites, {117, 84}) == front.id,
                  "Tree vector order changed picking depth");
 }
@@ -71,9 +77,9 @@ void check_pixel_mapping_and_bounds()
                      test::near(physical_ground.y, glm::round(physical_ground.y)),
                      "Ground is not snapped to physical pixels");
         const glm::vec2 physical_size = entry.size * scale;
-        test::expect(physical_size.x == physical_size.y &&
-                     physical_size.x == 8 * actor_source_pixel_scale(view),
-                     "Source pixel scaling is not physically square/integer");
+        test::expect(test::near(physical_size.x, physical_size.y) &&
+                     test::near(physical_size.x, 8 * actor_source_pixel_scale(view)),
+                     "Source pixel scaling is not physically square");
         const glm::vec2 hit = entry.minimum + entry.size * glm::vec2{2.5f / 8, 3.5f / 8};
         test::expect(test::pick_id(scene, sprites, hit) == tree.id,
                      "Logical mouse did not map to the opaque source pixel at this DPI");
@@ -82,6 +88,11 @@ void check_pixel_mapping_and_bounds()
         test::expect(test::pick_id(scene, sprites, entry.minimum - glm::vec2{1, 1}) == 0 &&
                      test::pick_id(scene, sprites, entry.minimum + entry.size) == 0,
                      "Outside sprite rectangle picked a tree");
+        for (float radius : {5.0f, 13.21f, 20.0f, 160.0f}) {
+            build_actor_scene(map, {view.origin, radius, scale}, sprites, scene);
+            test::expect(test::near(scene.front().size.x / radius, glm::sqrt(3.0f) * 1.05f),
+                         "Sprite size must scale proportionally with terrain at every zoom");
+        }
     }
 }
 

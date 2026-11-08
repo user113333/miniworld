@@ -35,7 +35,7 @@ float actor_source_pixel_scale(const ActorSceneView& view, int source_width)
         return 0.0f;
     }
     const float tile_width = glm::sqrt(3.0f) * view.radius;
-    return glm::max(1.0f, glm::floor(tile_width * view.framebuffer_scale.x * 1.05f / source_width));
+    return tile_width * view.framebuffer_scale.x * 1.05f / source_width;
 }
 
 glm::vec2 snapped_actor_ground(glm::vec2 world_ground, const ActorSceneView& view)
