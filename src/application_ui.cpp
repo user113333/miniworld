@@ -7,7 +7,7 @@
 bool ApplicationUi::initialize()
 {
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     ImGui::StyleColorsDark();
     base_style_ = ImGui::GetStyle();
 
@@ -67,9 +67,6 @@ void ApplicationUi::draw(bool& running)
         ImGui::EndMainMenuBar();
     }
 
-    // Submit after the menu reserves viewport work area and before dockable windows.
-    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
-                                 ImGuiDockNodeFlags_PassthruCentralNode);
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
