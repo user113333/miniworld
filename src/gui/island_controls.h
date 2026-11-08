@@ -1,5 +1,5 @@
 #pragma once
 
-class IslandDemo;
+class Simulation;
 
-void draw_island_controls(IslandDemo& island, bool& open);
+void draw_island_controls(Simulation& simulation, bool& open);

@@ -1,9 +1,7 @@
 #pragma once
 
-#include "tile_map.h"
 #include "simulation_clock.h"
-#include "world_simulation.h"
-
+#include "world.h"
 #include <random>
 
 struct IslandSettings {
@@ -11,33 +9,32 @@ struct IslandSettings {
     int height = 32;
     std::uint32_t seed = 0;
     float tree_density = 0.20f;
-    float simulation_speed = 1.0f;
-    bool select_entities = false;
-    bool ignite_trees = false;
 };
+struct SimulationSettings { float speed = 1.0f; };
 
-class IslandDemo {
+class Simulation {
 public:
-    IslandDemo();
+    Simulation();
     void generate();
     void regenerate();
     void advance_simulation(double real_seconds, bool active = true);
     void accumulate_simulation_time(double real_seconds, bool active = true);
     bool step_simulation();
-    bool queue_ignition(std::uint64_t tree_id, std::uint64_t generation);
-    std::size_t pending_ignitions() const { return simulation_.pending_ignitions(); }
+    bool enqueue(IgniteActor command) { return world_.enqueue(command); }
+    std::size_t pending_ignitions() const { return world_.pending_ignitions(); }
     void toggle_pause();
-    const TileMap& map() const { return map_; }
+    World& world() { return world_; }
+    const World& world() const { return world_; }
+    const TileMap& map() const { return world_.map(); }
     const SimulationClock& clock() const { return clock_; }
-    std::uint64_t world_generation() const { return world_generation_; }
+    std::uint64_t world_generation() const { return world_.generation(); }
 
-    IslandSettings settings;
+    IslandSettings island_settings;
+    SimulationSettings settings;
 
 private:
     std::mt19937 random_{std::random_device{}()};
-    TileMap map_;
+    World world_;
     SimulationClock clock_;
-    WorldSimulation simulation_;
-    std::uint64_t world_generation_ = 0;
     float resume_speed_ = 1.0f;
 };

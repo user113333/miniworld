@@ -1,4 +1,4 @@
-#include "tree_renderer.h"
+#include "render/actor_renderer.h"
 #include "test_support.h"
 
 #include <array>
@@ -9,11 +9,11 @@ namespace {
 using Pixel = std::array<Uint8, 4>;
 
 std::vector<Pixel> render(SDL_Renderer* renderer, SDL_Surface* surface,
-                           const TreeRenderer& trees, const TileMap& map)
+                           const ActorRenderer& trees, const test::MapState& map)
 {
     test::expect(SDL_SetRenderDrawColor(renderer, 40, 70, 100, 255) && SDL_RenderClear(renderer),
                  "Cannot clear tree test surface");
-    trees.draw(renderer, map, {{80, 100}, 20});
+    trees.draw(renderer, map, test::actor_views(map), {{80, 100}, 20});
     test::expect(SDL_RenderPresent(renderer), "Cannot flush tree drawing");
     std::vector<Pixel> pixels(surface->w * surface->h);
     for (int y = 0; y < surface->h; ++y) {
@@ -28,14 +28,14 @@ std::vector<Pixel> render(SDL_Renderer* renderer, SDL_Surface* surface,
 
 void check_tint(SDL_Renderer* renderer, SDL_Surface* surface)
 {
-    TreeRenderer trees;
+    ActorRenderer trees;
     test::expect(trees.initialize(renderer), "Cannot load tree sprites for tint test");
-    TileMap map{12, 12, 42, std::vector<Terrain>(144, Terrain::grass),
+    test::MapState map{12, 12, 42, std::vector<Terrain>(144, Terrain::grass),
                  {{{0, 0}, 0, {}}, {{3, 0}, 0, {}}}};
     map.trees[0].id = 1;
     map.trees[1].id = 2;
     for (TreeStage stage : {TreeStage::growing, TreeStage::mature, TreeStage::dead}) {
-        for (Tree& tree : map.trees) {
+        for (test::TreeRecord& tree : map.trees) {
             tree.stage = stage;
         }
         const auto normal = render(renderer, surface, trees, map);

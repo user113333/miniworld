@@ -1,5 +1,5 @@
-#include "map_renderer.h"
-#include "hex_grid.h"
+#include "render/map_renderer.h"
+#include "world/hex_grid.h"
 
 #include <array>
 #include <vector>

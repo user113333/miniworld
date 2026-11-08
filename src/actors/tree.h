@@ -1,16 +1,12 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "actor.h"
 
 #include <cstdint>
 
 enum class TreeStage { growing, mature, dead };
 
 struct Tree {
-    glm::ivec2 hex;
-    unsigned int variant;
-    glm::vec2 offset{}; // Ground offset in hex-radius units, inside the owning tile.
-    std::uint64_t id = 0;
     TreeStage stage = TreeStage::mature;
     std::uint64_t age_ticks = 0;
     std::uint64_t growth_ticks = 0;
@@ -23,3 +19,13 @@ struct Tree {
 
     bool burning() const { return burnout_tick != 0; }
 };
+
+struct TreeSpawn {
+    glm::ivec2 hex{};
+    unsigned variant = 0;
+    glm::vec2 offset{};
+};
+
+namespace flecs { struct world; struct entity; }
+flecs::entity create_tree(flecs::world& ecs, ActorId id,
+                          const TreeSpawn& spawn, const Tree& state);

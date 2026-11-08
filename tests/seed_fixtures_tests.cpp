@@ -1,6 +1,6 @@
-#include "island_generator.h"
+#include "world/island_generator.h"
 #include "test_support.h"
-#include "tree_placement.h"
+#include "world/tree_placement.h"
 
 #include <fstream>
 #include <locale>
@@ -39,7 +39,7 @@ void check_fixture(const char* name)
     input >> seed;
     expect_token(input, "density");
     test::expect(static_cast<bool>(input >> density) && density >= 0.0f && density <= 1.0f, "Invalid fixture density");
-    TileMap map = generate_island(width, height, seed);
+    test::MapState map = generate_island(width, height, seed);
     place_trees(map, density);
     expect_token(input, "terrain");
     for (int row = 0; row < height; ++row) {
@@ -57,7 +57,7 @@ void check_fixture(const char* name)
     const auto actual = test::trees_by_cell(map);
     std::set<int> seen;
     for (std::size_t record = 0; record < tree_count; ++record) {
-        Tree expected{};
+        test::TreeRecord expected{};
         test::expect(static_cast<bool>(input >> expected.hex.x >> expected.hex.y >> expected.variant
                                       >> expected.offset.x >> expected.offset.y), "Invalid tree record");
         test::expect(map.contains(expected.hex), "Fixture tree is outside map");

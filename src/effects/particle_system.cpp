@@ -1,5 +1,5 @@
-#include "particle_system.h"
-#include "simulation_clock.h"
+#include "effects/particle_system.h"
+#include "simulation/simulation_clock.h"
 
 #include <algorithm>
 #include <cmath>

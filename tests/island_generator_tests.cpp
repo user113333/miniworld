@@ -1,12 +1,12 @@
-#include "hex_grid.h"
-#include "island_generator.h"
+#include "world/hex_grid.h"
+#include "world/island_generator.h"
 #include "test_support.h"
 
 #include <limits>
 #include <set>
 
 namespace {
-void check_island(const TileMap& map)
+void check_island(const test::MapState& map)
 {
     const int count = map.width * map.height;
     test::expect(map.tiles.size() == static_cast<std::size_t>(count), "Wrong terrain count");
@@ -79,14 +79,14 @@ int main()
                 const std::string context = "seed " + std::to_string(seed) + ", "
                     + std::to_string(size.x) + "x" + std::to_string(size.y);
                 test::with_context(context, [&] {
-                    const TileMap map = generate_island(size.x, size.y, seed);
+                    const test::MapState map = generate_island(size.x, size.y, seed);
                     test::expect(map.width == size.x && map.height == size.y && map.seed == seed, "Wrong map metadata");
                     check_island(map);
                     test::expect(generate_island(size.x, size.y, seed).tiles == map.tiles, "Seed is not reproducible");
                 });
             }
         }
-        const TileMap standard = generate_island(48, 32, 74129);
+        const test::MapState standard = generate_island(48, 32, 74129);
         test::expect(std::set<Terrain>(standard.tiles.begin(), standard.tiles.end()).size() == 4,
                      "Reference island must contain all four terrain types");
         std::set<std::vector<Terrain>> layouts;

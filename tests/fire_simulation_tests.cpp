@@ -1,15 +1,16 @@
-#include "hex_grid.h"
+#include "world_fixture.h"
+#include "world/hex_grid.h"
 #include "test_support.h"
-#include "world_simulation.h"
+#include "simulation/world.h"
 
 #include <algorithm>
 #include <limits>
 
 namespace {
 
-TileMap fuel_map(std::uint32_t seed, std::initializer_list<glm::ivec2> trees)
+test::MapState fuel_map(std::uint32_t seed, std::initializer_list<glm::ivec2> trees)
 {
-    TileMap map{12, 12, seed, std::vector<Terrain>(144, Terrain::water), {}};
+    test::MapState map{12, 12, seed, std::vector<Terrain>(144, Terrain::water), {}};
     for (glm::ivec2 hex : trees) {
         map.tiles[map.index(hex)] = Terrain::grass;
         map.trees.push_back({hex, 0, {}});
@@ -17,16 +18,16 @@ TileMap fuel_map(std::uint32_t seed, std::initializer_list<glm::ivec2> trees)
     return map;
 }
 
-Tree& tree_at(TileMap& map, glm::ivec2 hex)
+test::TreeRecord& tree_at(test::MapState& map, glm::ivec2 hex)
 {
-    const auto found = std::find_if(map.trees.begin(), map.trees.end(), [hex](const Tree& tree) {
+    const auto found = std::find_if(map.trees.begin(), map.trees.end(), [hex](const test::TreeRecord& tree) {
         return tree.hex == hex;
     });
     test::expect(found != map.trees.end(), "Expected fuel tree is missing");
     return *found;
 }
 
-void advance(WorldSimulation& simulation, TileMap& map, std::uint64_t& tick,
+void advance(test::WorldFixture& simulation, test::MapState& map, std::uint64_t& tick,
              std::uint64_t until)
 {
     while (tick < until) {
@@ -37,20 +38,20 @@ void advance(WorldSimulation& simulation, TileMap& map, std::uint64_t& tick,
 
 void check_fuel_and_burn_down()
 {
-    TileMap map = fuel_map(74129, {{-3, 0}, {0, 0}, {3, 0}});
+    test::MapState map = fuel_map(74129, {{-3, 0}, {0, 0}, {3, 0}});
     map.tiles[map.index({0, 0})] = Terrain::land;
     const auto original_terrain = map.tiles;
-    WorldSimulation simulation;
+    test::WorldFixture simulation;
     simulation.reset(map);
     tree_at(map, {-3, 0}).stage = TreeStage::growing;
     tree_at(map, {-3, 0}).age_ticks = 0;
-    Tree& mature = tree_at(map, {0, 0});
+    test::TreeRecord& mature = tree_at(map, {0, 0});
     mature.age_ticks = mature.lifespan_ticks - 8;
-    Tree& dead = tree_at(map, {3, 0});
+    test::TreeRecord& dead = tree_at(map, {3, 0});
     dead.stage = TreeStage::dead;
     dead.dead_ticks = dead.decay_ticks - 8;
 
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         test::expect(simulation.queue_ignition(map, tree.id), "A fuel stage rejected ignition");
         test::expect(!simulation.queue_ignition(map, tree.id), "Duplicate ignition was queued twice");
         test::expect(!tree.burning(), "Queued ignition changed the frozen world immediately");
@@ -64,7 +65,7 @@ void check_fuel_and_burn_down()
     advance(simulation, map, tick, 8);
     test::expect(simulation.pending_ignitions() == 0, "Committed commands remained pending");
     std::uint64_t last_burnout = 0;
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         test::expect(tree.burning() && tree.ignition_tick == 8 && !tree.charred,
                      "Ignition did not begin on the next world update");
         const auto duration = tree.burnout_tick - tree.ignition_tick;
@@ -82,7 +83,7 @@ void check_fuel_and_burn_down()
 
     advance(simulation, map, tick, last_burnout);
     test::expect(map.trees.size() == 3, "Fuel disappeared before charred decay");
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         const int cell = map.index(tree.hex);
         test::expect(tree.stage == TreeStage::dead && tree.charred && !tree.burning(),
                      "Burn-down did not leave inert charred remains");
@@ -124,8 +125,8 @@ void check_staged_spread_and_gaps()
 {
     bool observed_spread = false;
     for (std::uint32_t seed = 0; seed < 32 && !observed_spread; ++seed) {
-        TileMap map = fuel_map(seed, {{0, 0}, {1, 0}, {2, 0}});
-        WorldSimulation simulation;
+        test::MapState map = fuel_map(seed, {{0, 0}, {1, 0}, {2, 0}});
+        test::WorldFixture simulation;
         simulation.reset(map);
         simulation.queue_ignition(map, tree_at(map, {0, 0}).id);
         std::uint64_t tick = 0;
@@ -144,8 +145,8 @@ void check_staged_spread_and_gaps()
     }
     test::expect(observed_spread, "Reference seeds never spread to adjacent fuel");
 
-    TileMap gap = fuel_map(42, {{0, 0}, {2, 0}});
-    WorldSimulation simulation;
+    test::MapState gap = fuel_map(42, {{0, 0}, {2, 0}});
+    test::WorldFixture simulation;
     simulation.reset(gap);
     simulation.queue_ignition(gap, tree_at(gap, {0, 0}).id);
     std::uint64_t tick = 0;
@@ -161,10 +162,10 @@ void check_combined_pressure()
     int one_neighbor = 0;
     int two_neighbors = 0;
     for (std::uint32_t seed = 0; seed < 1024; ++seed) {
-        TileMap one = fuel_map(seed, {{-1, 0}, {0, 0}, {1, 0}});
-        TileMap two = one;
-        WorldSimulation one_simulation;
-        WorldSimulation two_simulation;
+        test::MapState one = fuel_map(seed, {{-1, 0}, {0, 0}, {1, 0}});
+        test::MapState two = one;
+        test::WorldFixture one_simulation;
+        test::WorldFixture two_simulation;
         one_simulation.reset(one);
         two_simulation.reset(two);
         one_simulation.queue_ignition(one, tree_at(one, {-1, 0}).id);
@@ -184,14 +185,14 @@ void check_combined_pressure()
                  "Combined burning neighbors do not increase spread pressure");
 }
 
-void expect_same_world(const TileMap& first, const TileMap& second)
+void expect_same_world(const test::MapState& first, const test::MapState& second)
 {
     test::expect(first.tiles == second.tiles, "Vector order changed burned terrain");
     const auto first_trees = test::trees_by_cell(first);
     const auto second_trees = test::trees_by_cell(second);
     test::expect(first_trees.size() == second_trees.size(), "Vector order changed population");
     for (const auto& [cell, tree] : first_trees) {
-        const Tree& other = second_trees.at(cell);
+        const test::TreeRecord& other = second_trees.at(cell);
         test::expect_same_tree(tree, other);
         test::expect(tree.id == other.id && tree.stage == other.stage &&
                      tree.age_ticks == other.age_ticks && tree.dead_ticks == other.dead_ticks &&
@@ -211,14 +212,14 @@ void expect_same_world(const TileMap& first, const TileMap& second)
 
 void check_order_independence_and_reset()
 {
-    TileMap first{12, 12, 74129, std::vector<Terrain>(144, Terrain::grass), {}};
+    test::MapState first{12, 12, 74129, std::vector<Terrain>(144, Terrain::grass), {}};
     for (int cell = 0; cell < static_cast<int>(first.tiles.size()); ++cell) {
         first.trees.push_back({first.hex_at(cell), static_cast<unsigned>(cell % 3), {}});
     }
-    TileMap second = first;
+    test::MapState second = first;
     std::reverse(second.trees.begin(), second.trees.end());
-    WorldSimulation first_simulation;
-    WorldSimulation second_simulation;
+    test::WorldFixture first_simulation;
+    test::WorldFixture second_simulation;
     first_simulation.reset(first);
     second_simulation.reset(second);
     for (glm::ivec2 hex : {glm::ivec2{0, 0}, {1, 0}}) {
@@ -237,8 +238,8 @@ void check_order_independence_and_reset()
     test::expect(std::count(first.tiles.begin(), first.tiles.end(), Terrain::burned) > 2,
                  "Dense reference forest did not exercise staged spread");
 
-    TileMap reset = fuel_map(7, {{0, 0}});
-    WorldSimulation reset_simulation;
+    test::MapState reset = fuel_map(7, {{0, 0}});
+    test::WorldFixture reset_simulation;
     reset_simulation.reset(reset);
     reset_simulation.queue_ignition(reset, reset.trees.front().id);
     reset_simulation.reset(reset);
@@ -250,8 +251,8 @@ void check_order_independence_and_reset()
 
 void check_ineligible_terrain_and_natural_death()
 {
-    TileMap map = fuel_map(3, {{0, 0}});
-    WorldSimulation simulation;
+    test::MapState map = fuel_map(3, {{0, 0}});
+    test::WorldFixture simulation;
     simulation.reset(map);
     for (Terrain terrain : {Terrain::water, Terrain::sand, Terrain::burned}) {
         map.tiles[map.index({0, 0})] = terrain;

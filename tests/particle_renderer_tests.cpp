@@ -1,4 +1,4 @@
-#include "particle_renderer.h"
+#include "render/particle_renderer.h"
 #include "test_support.h"
 
 #include <SDL3/SDL.h>
@@ -43,7 +43,7 @@ void expect_unchanged(const ParticleSystem& system, const Particle& before,
 }
 
 void check_footprint(SoftwareCanvas& canvas, const ParticleSystem& system,
-                      TreeSceneView view)
+                      ActorSceneView view)
 {
     test::expect(SDL_SetRenderScale(canvas.renderer, view.framebuffer_scale.x, view.framebuffer_scale.y),
                  "Cannot set particle test DPI");

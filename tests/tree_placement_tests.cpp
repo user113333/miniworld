@@ -1,7 +1,7 @@
-#include "hex_grid.h"
-#include "island_generator.h"
+#include "world/hex_grid.h"
+#include "world/island_generator.h"
 #include "test_support.h"
-#include "tree_placement.h"
+#include "world/tree_placement.h"
 
 #include <algorithm>
 #include <limits>
@@ -13,11 +13,11 @@ bool eligible(Terrain terrain)
     return terrain == Terrain::grass || terrain == Terrain::land;
 }
 
-void check_densities(TileMap map)
+void check_densities(test::MapState map)
 {
     const auto terrain = map.tiles;
     const auto eligible_count = std::count_if(terrain.begin(), terrain.end(), eligible);
-    std::map<int, Tree> previous;
+    std::map<int, test::TreeRecord> previous;
     for (float density : {-0.5f, 0.0f, 0.2f, 0.5f, 1.0f, 1.5f}) {
         test::with_context("density " + std::to_string(density), [&] {
             place_trees(map, density);
@@ -57,10 +57,10 @@ void check_forest_groups()
     int total = 0;
     std::set<unsigned int> variants;
     for (std::uint32_t seed = 0; seed < 50; ++seed) {
-        TileMap map = generate_island(48, 32, seed);
+        test::MapState map = generate_island(48, 32, seed);
         place_trees(map, 0.2f);
         const auto occupied = test::trees_by_cell(map);
-        for (const Tree& tree : map.trees) {
+        for (const test::TreeRecord& tree : map.trees) {
             int neighbors = 0;
             for (glm::ivec2 direction : hex_neighbors) {
                 const glm::ivec2 neighbor = tree.hex + direction;
@@ -81,7 +81,7 @@ void check_forest_groups()
 
 void check_sparse_terrain()
 {
-    TileMap map{12, 12, 42, std::vector<Terrain>(144, Terrain::water), {{{0, 0}, 0, {}}}};
+    test::MapState map{12, 12, 42, std::vector<Terrain>(144, Terrain::water), {{{0, 0}, 0, {}}}};
     place_trees(map, 1.0f);
     test::expect(map.trees.empty(), "Old trees survived replacement on an empty ocean");
     std::fill(map.tiles.begin(), map.tiles.end(), Terrain::sand);

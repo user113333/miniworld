@@ -1,4 +1,4 @@
-#include "map_renderer.h"
+#include "render/map_renderer.h"
 #include "test_support.h"
 
 #include <array>
@@ -8,7 +8,7 @@ namespace {
 using Pixel = std::array<Uint8, 4>;
 
 void check_solid_tile(SDL_Renderer* renderer, SDL_Surface* surface,
-                       const TileMap& map, Pixel expected)
+                       const test::MapState& map, Pixel expected)
 {
     const auto terrain = map.tiles;
     const auto recovery = map.recovery;
@@ -41,7 +41,7 @@ void check_solid_tile(SDL_Renderer* renderer, SDL_Surface* surface,
 
 void check_recovery_colors(SDL_Renderer* renderer, SDL_Surface* surface)
 {
-    TileMap map{12, 12, 42, std::vector<Terrain>(144, Terrain::water), {}};
+    test::MapState map{12, 12, 42, std::vector<Terrain>(144, Terrain::water), {}};
     const int origin = map.index({0, 0});
     const std::array<Terrain, 4> original_terrain{
         Terrain::water, Terrain::sand, Terrain::land, Terrain::grass};

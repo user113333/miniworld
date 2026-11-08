@@ -1,10 +1,11 @@
-#include "island_demo.h"
-#include "hex_grid.h"
-#include "island_generator.h"
-#include "simulation_clock.h"
+#include "world_fixture.h"
+#include "simulation/simulation.h"
+#include "world/hex_grid.h"
+#include "world/island_generator.h"
+#include "simulation/simulation_clock.h"
 #include "test_support.h"
-#include "tree_placement.h"
-#include "world_simulation.h"
+#include "world/tree_placement.h"
+#include "simulation/world.h"
 
 #include <algorithm>
 #include <set>
@@ -13,12 +14,12 @@ namespace {
 
 constexpr std::uint64_t world_ticks = SimulationClock::ticks_per_world_step;
 
-TileMap flat_map(Terrain terrain, std::uint32_t seed, int width = 12, int height = 12)
+test::MapState flat_map(Terrain terrain, std::uint32_t seed, int width = 12, int height = 12)
 {
     return {width, height, seed, std::vector<Terrain>(width * height, terrain), {}};
 }
 
-void expect_same_runtime(const Tree& actual, const Tree& expected)
+void expect_same_runtime(const test::TreeRecord& actual, const test::TreeRecord& expected)
 {
     test::expect_same_tree(actual, expected);
     test::expect(actual.id == expected.id && actual.stage == expected.stage,
@@ -30,7 +31,7 @@ void expect_same_runtime(const Tree& actual, const Tree& expected)
                  actual.decay_ticks == expected.decay_ticks, "Lifecycle sampling changed during replay");
 }
 
-void expect_same_world(const TileMap& actual, const TileMap& expected)
+void expect_same_world(const test::MapState& actual, const test::MapState& expected)
 {
     test::expect(actual.tiles == expected.tiles, "Terrain changed during replay");
     const auto actual_trees = test::trees_by_cell(actual);
@@ -43,7 +44,7 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
     }
 }
 
-void check_invariants(const TileMap& map, const WorldSimulation& simulation)
+void check_invariants(const test::MapState& map, const test::WorldFixture& simulation)
 {
     const auto occupied = test::trees_by_cell(map);
     std::set<std::uint64_t> ids;
@@ -58,7 +59,7 @@ void check_invariants(const TileMap& map, const WorldSimulation& simulation)
         }
         test::expect(index >= 0 && static_cast<std::size_t>(index) < map.trees.size(),
                      "Occupied cell has an invalid vector index");
-        const Tree& tree = map.trees[index];
+        const test::TreeRecord& tree = map.trees[index];
         test::expect(map.index(tree.hex) == cell, "Occupancy refers to a different cell");
         test::expect(map.tiles[cell] == Terrain::grass || map.tiles[cell] == Terrain::land,
                      "Birth occurred on ineligible terrain");
@@ -79,10 +80,10 @@ void check_invariants(const TileMap& map, const WorldSimulation& simulation)
 
 void check_initial_state()
 {
-    TileMap map = generate_island(48, 32, 74129);
+    test::MapState map = generate_island(48, 32, 74129);
     place_trees(map, 0.2f);
-    const TileMap original = map;
-    WorldSimulation simulation;
+    const test::MapState original = map;
+    test::WorldFixture simulation;
     simulation.reset(map);
     std::set<std::uint64_t> ages;
     std::uint64_t previous_id = 0;
@@ -110,11 +111,11 @@ void check_initial_state()
     check_invariants(map, simulation);
 }
 
-void expect_clustered_forest(const TileMap& map, const WorldSimulation& simulation)
+void expect_clustered_forest(const test::MapState& map, const test::WorldFixture& simulation)
 {
     int living = 0;
     int grouped = 0;
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         if (tree.stage == TreeStage::dead) {
             continue;
         }
@@ -136,12 +137,12 @@ void expect_clustered_forest(const TileMap& map, const WorldSimulation& simulati
 
 void check_lifecycle_boundaries()
 {
-    TileMap map = flat_map(Terrain::water, 123);
+    test::MapState map = flat_map(Terrain::water, 123);
     map.tiles[map.index({0, 0})] = Terrain::grass;
     map.trees.push_back({{0, 0}, 2, {0.1f, -0.1f}});
-    WorldSimulation simulation;
+    test::WorldFixture simulation;
     simulation.reset(map);
-    Tree& tree = map.trees.front();
+    test::TreeRecord& tree = map.trees.front();
     const auto id = tree.id;
     tree.stage = TreeStage::growing;
     tree.age_ticks = tree.growth_ticks - world_ticks;
@@ -167,19 +168,19 @@ void check_birth_snapshot()
     // Find a successful deterministic birth, then put an expiring corpse on its
     // cell. The same trial must be blocked by start-of-step occupancy.
     for (std::uint32_t seed = 0; seed < 1024; ++seed) {
-        TileMap empty = flat_map(Terrain::grass, seed);
-        WorldSimulation births;
+        test::MapState empty = flat_map(Terrain::grass, seed);
+        test::WorldFixture births;
         births.reset(empty);
         births.update(empty, 8);
         if (empty.trees.empty()) {
             continue;
         }
-        const Tree newborn = empty.trees.front();
+        const test::TreeRecord newborn = empty.trees.front();
         test::expect(newborn.stage == TreeStage::growing && newborn.age_ticks == 0,
                      "Newborn was updated again on its birth step");
-        TileMap occupied = flat_map(Terrain::grass, seed);
+        test::MapState occupied = flat_map(Terrain::grass, seed);
         occupied.trees.push_back(newborn);
-        WorldSimulation simulation;
+        test::WorldFixture simulation;
         simulation.reset(occupied);
         occupied.trees.front().stage = TreeStage::dead;
         occupied.trees.front().dead_ticks = occupied.trees.front().decay_ticks - world_ticks;
@@ -195,8 +196,8 @@ void check_birth_snapshot()
 void check_empty_and_full_maps()
 {
     for (Terrain terrain : {Terrain::water, Terrain::sand}) {
-        TileMap map = flat_map(terrain, 1);
-        WorldSimulation simulation;
+        test::MapState map = flat_map(terrain, 1);
+        test::WorldFixture simulation;
         simulation.reset(map);
         for (std::uint64_t tick = 8; tick <= 3200; tick += 8) {
             simulation.update(map, tick);
@@ -204,9 +205,9 @@ void check_empty_and_full_maps()
         test::expect(map.trees.empty(), "Water or sand supported tree births");
         check_invariants(map, simulation);
     }
-    TileMap full = flat_map(Terrain::grass, 2);
+    test::MapState full = flat_map(Terrain::grass, 2);
     place_trees(full, 1.0f);
-    WorldSimulation simulation;
+    test::WorldFixture simulation;
     simulation.reset(full);
     simulation.update(full, 8);
     test::expect(full.trees.size() == full.tiles.size(), "Full occupancy lost or duplicated a tree");
@@ -221,10 +222,10 @@ void check_birth_weighting()
     double birth_suitability = 0;
     std::size_t habitat_count = 0;
     for (std::uint32_t seed = 0; seed < 24; ++seed) {
-        TileMap grass = flat_map(Terrain::grass, seed, 48, 32);
-        TileMap land = flat_map(Terrain::land, seed, 48, 32);
-        WorldSimulation grass_simulation;
-        WorldSimulation land_simulation;
+        test::MapState grass = flat_map(Terrain::grass, seed, 48, 32);
+        test::MapState land = flat_map(Terrain::land, seed, 48, 32);
+        test::WorldFixture grass_simulation;
+        test::WorldFixture land_simulation;
         grass_simulation.reset(grass);
         land_simulation.reset(land);
         for (std::uint64_t tick = 8; tick <= 640; tick += 8) {
@@ -237,7 +238,7 @@ void check_birth_weighting()
             habitat_suitability += forest_suitability(grass.hex_at(cell), seed);
             ++habitat_count;
         }
-        for (const Tree& tree : grass.trees) {
+        for (const test::TreeRecord& tree : grass.trees) {
             birth_suitability += forest_suitability(tree.hex, seed);
         }
         check_invariants(grass, grass_simulation);
@@ -251,17 +252,17 @@ void check_birth_weighting()
 
 void check_reordering_and_long_run()
 {
-    TileMap map = generate_island(48, 32, 74129);
+    test::MapState map = generate_island(48, 32, 74129);
     place_trees(map, 0.2f);
-    TileMap reversed = map;
+    test::MapState reversed = map;
     std::reverse(reversed.trees.begin(), reversed.trees.end());
-    WorldSimulation simulation;
-    WorldSimulation reordered_simulation;
+    test::WorldFixture simulation;
+    test::WorldFixture reordered_simulation;
     simulation.reset(map);
     reordered_simulation.reset(reversed);
     expect_same_world(map, reversed);
     std::set<std::uint64_t> original_ids;
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         original_ids.insert(tree.id);
     }
     const auto original_terrain = map.tiles;
@@ -270,7 +271,7 @@ void check_reordering_and_long_run()
     for (std::uint64_t tick = 8; tick <= 1200 * 32; tick += 8) {
         simulation.update(map, tick);
         reordered_simulation.update(reversed, tick);
-        for (const Tree& tree : map.trees) {
+        for (const test::TreeRecord& tree : map.trees) {
             saw_growing |= tree.stage == TreeStage::growing;
             saw_dead |= tree.stage == TreeStage::dead;
         }
@@ -286,7 +287,7 @@ void check_reordering_and_long_run()
     test::expect(saw_growing && saw_dead && !map.trees.empty(),
                  "Long run did not sustain gradual births and deaths");
     test::expect(map.tiles == original_terrain, "Natural forest turnover changed terrain");
-    for (const Tree& tree : map.trees) {
+    for (const test::TreeRecord& tree : map.trees) {
         test::expect(!original_ids.count(tree.id) && tree.id > *original_ids.rbegin(),
                      "An original tree survived indefinitely or its ID was reused");
     }
@@ -294,16 +295,16 @@ void check_reordering_and_long_run()
 
 void check_frame_replay()
 {
-    IslandDemo coarse;
-    IslandDemo fine;
-    for (IslandDemo* island : {&coarse, &fine}) {
+    test::SimulationFixture coarse;
+    test::SimulationFixture fine;
+    for (test::SimulationFixture* island : {&coarse, &fine}) {
         island->settings.width = 24;
         island->settings.height = 18;
         island->settings.seed = 74129;
         island->settings.simulation_speed = 8.0f;
         island->regenerate();
     }
-    const TileMap initial = fine.map();
+    const test::MapState initial = fine.map();
     for (int frame = 0; frame < 200; ++frame) {
         coarse.advance_simulation(0.25);
     }
@@ -312,7 +313,7 @@ void check_frame_replay()
     }
     test::expect(coarse.clock().ticks() == fine.clock().ticks(), "Frame partitions changed elapsed time");
     expect_same_world(coarse.map(), fine.map());
-    const TileMap paused = fine.map();
+    const test::MapState paused = fine.map();
     fine.toggle_pause();
     for (int frame = 0; frame < 20; ++frame) {
         fine.advance_simulation(30.0);

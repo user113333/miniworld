@@ -1,4 +1,4 @@
-#include "tree_renderer.h"
+#include "render/actor_renderer.h"
 
 #include <algorithm>
 #include <limits>
@@ -33,12 +33,12 @@ void draw_sprite(SDL_Renderer* renderer, SDL_Texture* texture,
 }
 } // namespace
 
-TreeRenderer::~TreeRenderer()
+ActorRenderer::~ActorRenderer()
 {
     shutdown();
 }
 
-bool TreeRenderer::initialize(SDL_Renderer* renderer)
+bool ActorRenderer::initialize(SDL_Renderer* renderer)
 {
     shutdown();
     const char* base_path = SDL_GetBasePath();
@@ -54,7 +54,7 @@ bool TreeRenderer::initialize(SDL_Renderer* renderer)
             shutdown();
             return false;
         }
-        TreeSpriteMask& mask = masks_[index];
+        ActorSpriteMask& mask = masks_[index];
         mask.size = {image->w, image->h};
         mask.alpha.resize(static_cast<std::size_t>(image->w * image->h));
         bool readable = true;
@@ -81,20 +81,22 @@ bool TreeRenderer::initialize(SDL_Renderer* renderer)
     return true;
 }
 
-std::uint64_t TreeRenderer::pick(const TileMap& map, const MapView& view,
+ActorHandle ActorRenderer::pick(const TileMap& map, const std::vector<ActorView>& actors,
+                          const MapView& view,
                                  glm::vec2 framebuffer_scale, glm::vec2 logical_mouse) const
 {
-    build_tree_scene(map, {view.origin, view.radius, framebuffer_scale}, masks_, scene_);
-    return pick_tree(scene_, masks_, logical_mouse);
+    build_actor_scene(map, actors, {view.origin, view.radius, framebuffer_scale}, masks_, scene_);
+    return pick_actor(scene_, masks_, logical_mouse);
 }
 
-void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapView& view,
+void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::vector<ActorView>& actors,
+                          const MapView& view,
                         const ParticleSystem* particles) const
 {
     glm::vec2 framebuffer_scale;
     SDL_GetRenderScale(renderer, &framebuffer_scale.x, &framebuffer_scale.y);
-    const TreeSceneView scene_view{view.origin, view.radius, framebuffer_scale};
-    build_tree_scene(map, scene_view, masks_, scene_);
+    const ActorSceneView scene_view{view.origin, view.radius, framebuffer_scale};
+    build_actor_scene(map, actors, scene_view, masks_, scene_);
     if (view.radius <= 0.0f) {
         return;
     }
@@ -106,7 +108,7 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
     draw_entries_.clear();
     draw_entries_.reserve(scene_.size() + grouped_.size());
     for (std::size_t index = 0; index < scene_.size(); ++index) {
-        const TreeSceneEntry& tree = scene_[index];
+        const ActorSceneEntry& tree = scene_[index];
         std::size_t group = no_entry;
         if (particles) {
             const auto found = std::lower_bound(groups.begin(), groups.end(), tree.id,
@@ -141,12 +143,12 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
         if (entry.particle_group != no_entry) {
             particle_renderer_.draw(renderer, groups[entry.particle_group], ParticleKind::smoke, scene_view);
         }
-        if (entry.tree != no_entry) {
-            const TreeSceneEntry& tree = scene_[entry.tree];
+        if (entry.actor != no_entry) {
+            const ActorSceneEntry& tree = scene_[entry.actor];
             const SDL_FRect destination{tree.minimum.x, tree.minimum.y, tree.size.x, tree.size.y};
             if (sprites_[tree.sprite_index].texture) {
                 draw_sprite(renderer, sprites_[tree.sprite_index].texture, destination,
-                             map.trees[tree.tree_index].burning());
+                             tree.burning);
             }
         }
         if (entry.particle_group != no_entry) {
@@ -157,7 +159,7 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
     }
 }
 
-void TreeRenderer::shutdown()
+void ActorRenderer::shutdown()
 {
     for (Sprite& sprite : sprites_) {
         if (sprite.texture) {
@@ -165,7 +167,7 @@ void TreeRenderer::shutdown()
         }
         sprite = {};
     }
-    for (TreeSpriteMask& mask : masks_) {
+    for (ActorSpriteMask& mask : masks_) {
         mask = {};
     }
     scene_.clear();

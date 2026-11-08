@@ -1,8 +1,8 @@
 #include "application_ui.h"
 #include "island_controls.h"
 #include "simulation_controls.h"
-#include "island_demo.h"
-#include "map_renderer.h"
+#include "simulation/simulation.h"
+#include "render/map_renderer.h"
 
 #include <SDL3/SDL.h>
 #include <imgui_impl_sdl3.h>
@@ -117,7 +117,7 @@ void ApplicationUi::update_scale(SDL_Window* window)
     style.FontScaleDpi = scale;
 }
 
-void ApplicationUi::draw(bool& running, IslandDemo& island)
+void ApplicationUi::draw(bool& running, Simulation& simulation)
 {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -137,25 +137,29 @@ void ApplicationUi::draw(bool& running, IslandDemo& island)
     }
 
     if (show_island_window_) {
-        draw_island_controls(island, show_island_window_);
+        draw_island_controls(simulation, show_island_window_);
+    }
+    if (world_generation_ != simulation.world_generation()) {
+        cancel_tool();
+        world_generation_ = simulation.world_generation();
     }
     if (show_simulation_window_) {
-        draw_simulation_controls(island, show_simulation_window_);
+        draw_simulation_controls(simulation, tool_, show_simulation_window_);
     }
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
 }
 
-void ApplicationUi::select_tree(std::uint64_t tree_id, std::uint64_t generation)
+void ApplicationUi::select_actor(ActorHandle actor)
 {
-    tree_inspector_.select(tree_id, generation);
+    actor_inspector_.select(actor);
 }
 
-void ApplicationUi::draw_overlays(const IslandDemo& island, const MapView& view)
+void ApplicationUi::draw_overlays(const Simulation& simulation, const MapView& view)
 {
-    tree_inspector_.draw(island);
-    if (island.settings.select_entities && !ImGui::GetIO().WantCaptureMouse) {
+    actor_inspector_.draw(simulation);
+    if (tool_ == EntityTool::select && !ImGui::GetIO().WantCaptureMouse) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
     draw_origin_hint(view);

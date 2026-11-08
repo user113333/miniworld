@@ -1,6 +1,7 @@
 #pragma once
 
-#include "tree_inspector.h"
+#include "actor_inspector.h"
+#include "entity_tool.h"
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -8,7 +9,7 @@
 struct SDL_Window;
 struct SDL_Renderer;
 union SDL_Event;
-class IslandDemo;
+class Simulation;
 struct MapView;
 
 struct GuiFrameState {
@@ -30,9 +31,11 @@ public:
     void process_event(const SDL_Event& event);
     void begin_frame(SDL_Window* window);
     GuiFrameState frame_state() const;
-    void draw(bool& running, IslandDemo& island);
-    void select_tree(std::uint64_t tree_id, std::uint64_t generation);
-    void draw_overlays(const IslandDemo& island, const MapView& view);
+    void draw(bool& running, Simulation& simulation);
+    void select_actor(ActorHandle actor);
+    EntityTool tool() const { return tool_; }
+    void cancel_tool() { tool_ = EntityTool::none; }
+    void draw_overlays(const Simulation& simulation, const MapView& view);
     void finish_frame();
     void render(SDL_Renderer* renderer) const;
 
@@ -45,7 +48,9 @@ private:
     bool platform_ready_ = false;
     bool renderer_ready_ = false;
     ImGuiStyle base_style_;
-    TreeInspector tree_inspector_;
+    ActorInspector actor_inspector_;
+    EntityTool tool_ = EntityTool::none;
+    std::uint64_t world_generation_ = 0;
     float content_scale_ = 0.0f;
     bool show_demo_window_ = false;
     bool show_island_window_ = true;

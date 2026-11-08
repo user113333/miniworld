@@ -1,10 +1,11 @@
-#include "fire_effects.h"
-#include "island_demo.h"
+#include "world_fixture.h"
+#include "effects/fire_effects.h"
+#include "simulation/simulation.h"
 #include "test_support.h"
 
 namespace {
 
-void expect_same_world(const TileMap& actual, const TileMap& expected)
+void expect_same_world(const test::MapState& actual, const test::MapState& expected)
 {
     test::expect(actual.tiles == expected.tiles, "Effects changed terrain replay");
     test::expect(actual.recovery.size() == expected.recovery.size(), "Reset left stale recovery data");
@@ -21,7 +22,7 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
     for (const auto& [cell, b] : expected_trees) {
         const auto found = actual_trees.find(cell);
         test::expect(found != actual_trees.end(), "Effects changed tree occupancy");
-        const Tree& a = found->second;
+        const test::TreeRecord& a = found->second;
         test::expect_same_tree(a, b);
         test::expect(a.id == b.id && a.stage == b.stage && a.age_ticks == b.age_ticks &&
                      a.growth_ticks == b.growth_ticks && a.lifespan_ticks == b.lifespan_ticks &&
@@ -31,9 +32,9 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
     }
 }
 
-TileMap replay(std::size_t capacity, int frames, double frame_seconds)
+test::MapState replay(std::size_t capacity, int frames, double frame_seconds)
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.width = 24;
     island.settings.height = 18;
     island.settings.seed = 74129;
@@ -79,10 +80,10 @@ TileMap replay(std::size_t capacity, int frames, double frame_seconds)
 
 void check_paused_commands_and_reset()
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.seed = 74129;
     island.regenerate();
-    const TileMap original = island.map();
+    const test::MapState original = island.map();
     const auto generation = island.world_generation();
     const auto id = island.map().trees.front().id;
     island.settings.simulation_speed = 0.0f;
@@ -107,7 +108,7 @@ void check_paused_commands_and_reset()
 int main()
 {
     return test::run("Shared fire and visual integration", [] {
-        const TileMap disabled = replay(0, 32, 0.25);
+        const test::MapState disabled = replay(0, 32, 0.25);
         expect_same_world(replay(1, 512, 1.0 / 64.0), disabled);
         expect_same_world(replay(ParticleSystem::max_particles, 32, 0.25), disabled);
         check_paused_commands_and_reset();

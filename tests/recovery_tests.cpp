@@ -1,18 +1,19 @@
-#include "island_demo.h"
+#include "world_fixture.h"
+#include "simulation/simulation.h"
 #include "test_support.h"
-#include "tree_placement.h"
-#include "world_simulation.h"
+#include "world/tree_placement.h"
+#include "simulation/world.h"
 
 #include <algorithm>
 
 namespace {
 
-TileMap flat_map(Terrain terrain, std::uint32_t seed)
+test::MapState flat_map(Terrain terrain, std::uint32_t seed)
 {
     return {12, 12, seed, std::vector<Terrain>(144, terrain), {}};
 }
 
-void advance(WorldSimulation& simulation, TileMap& map, std::uint64_t& tick,
+void advance(test::WorldFixture& simulation, test::MapState& map, std::uint64_t& tick,
              std::uint64_t until)
 {
     while (tick < until) {
@@ -40,11 +41,11 @@ void expect_cleared(const BurnRecovery& recovery)
 
 void check_recovery_and_regrowth(Terrain original)
 {
-    TileMap map = flat_map(Terrain::water, favorable_seed());
+    test::MapState map = flat_map(Terrain::water, favorable_seed());
     const int cell = map.index({0, 0});
     map.tiles[cell] = original;
     map.trees.push_back({{0, 0}, 0, {}});
-    WorldSimulation simulation;
+    test::WorldFixture simulation;
     simulation.reset(map);
     const auto original_id = map.trees.front().id;
     test::expect(simulation.queue_ignition(map, original_id), "Could not start recovery fixture fire");
@@ -103,21 +104,21 @@ void check_restoration_birth_snapshot()
     // Discover a successful birth trial, then restore that same cell at the end
     // of its update. A real success makes the no-same-step guarantee observable.
     for (std::uint32_t seed = 0; seed < 1024; ++seed) {
-        TileMap control = flat_map(Terrain::grass, seed);
-        WorldSimulation control_simulation;
+        test::MapState control = flat_map(Terrain::grass, seed);
+        test::WorldFixture control_simulation;
         control_simulation.reset(control);
         control_simulation.update(control, 8);
         if (control.trees.empty()) {
             continue;
         }
-        const Tree newborn = control.trees.front();
+        const test::TreeRecord newborn = control.trees.front();
         const int cell = control.index(newborn.hex);
         for (bool occupied : {false, true}) {
-            TileMap map = flat_map(Terrain::grass, seed);
+            test::MapState map = flat_map(Terrain::grass, seed);
             if (occupied) {
                 map.trees.push_back(newborn);
             }
-            WorldSimulation simulation;
+            test::WorldFixture simulation;
             simulation.reset(map);
             if (occupied) {
                 map.trees.front().stage = TreeStage::dead;
@@ -144,7 +145,7 @@ void check_restoration_birth_snapshot()
     test::expect(false, "Reference seeds did not exercise a successful birth trial");
 }
 
-void expect_same_world(const TileMap& actual, const TileMap& expected)
+void expect_same_world(const test::MapState& actual, const test::MapState& expected)
 {
     test::expect(actual.tiles == expected.tiles && actual.recovery.size() == expected.recovery.size(),
                  "Replay changed terrain or recovery dimensions");
@@ -161,7 +162,7 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
     for (const auto& [cell, a] : trees) {
         const auto found = other.find(cell);
         test::expect(found != other.end(), "Replay changed occupancy");
-        const Tree& b = found->second;
+        const test::TreeRecord& b = found->second;
         test::expect_same_tree(a, b);
         test::expect(a.id == b.id && a.stage == b.stage && a.age_ticks == b.age_ticks &&
                      a.growth_ticks == b.growth_ticks && a.lifespan_ticks == b.lifespan_ticks &&
@@ -173,9 +174,9 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
 
 void check_clock_replay_pause_and_reset()
 {
-    IslandDemo coarse;
-    IslandDemo fine;
-    for (IslandDemo* island : {&coarse, &fine}) {
+    test::SimulationFixture coarse;
+    test::SimulationFixture fine;
+    for (test::SimulationFixture* island : {&coarse, &fine}) {
         island->settings.width = 24;
         island->settings.height = 18;
         island->settings.seed = 74129;
@@ -183,9 +184,9 @@ void check_clock_replay_pause_and_reset()
         island->settings.simulation_speed = 50.0f;
         island->regenerate();
     }
-    const TileMap original = coarse.map();
-    for (IslandDemo* island : {&coarse, &fine}) {
-        for (const Tree& tree : island->map().trees) {
+    const test::MapState original = coarse.map();
+    for (test::SimulationFixture* island : {&coarse, &fine}) {
+        for (const test::TreeRecord& tree : island->map().trees) {
             test::expect(island->queue_ignition(tree.id, island->world_generation()),
                          "Could not queue replay forest ignition");
         }
@@ -200,7 +201,7 @@ void check_clock_replay_pause_and_reset()
     test::expect(std::any_of(coarse.map().recovery.begin(), coarse.map().recovery.end(),
                  [](const BurnRecovery& state) { return state.weathered(); }),
                  "Replay did not exercise weathered ground");
-    const TileMap paused = coarse.map();
+    const test::MapState paused = coarse.map();
     coarse.settings.simulation_speed = 0.0f;
     coarse.advance_simulation(100.0);
     expect_same_world(coarse.map(), paused);
@@ -228,14 +229,14 @@ void check_clock_replay_pause_and_reset()
 
 void check_reset_active_scars()
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.width = 24;
     island.settings.height = 18;
     island.settings.seed = 74129;
     island.settings.tree_density = 1.0f;
     island.settings.simulation_speed = 50.0f;
     island.regenerate();
-    const TileMap original = island.map();
+    const test::MapState original = island.map();
     island.queue_ignition(island.map().trees.front().id, island.world_generation());
     island.advance_simulation(0.25);
     island.advance_simulation(0.25);
@@ -243,7 +244,7 @@ void check_reset_active_scars()
                  [](const BurnRecovery& state) { return state.duration_ticks != 0; }),
                  "Reset fixture did not leave an active scar");
     const auto fuel = std::find_if(island.map().trees.begin(), island.map().trees.end(),
-        [](const Tree& tree) { return !tree.charred && !tree.burning(); });
+        [](const test::TreeRecord& tree) { return !tree.charred && !tree.burning(); });
     test::expect(fuel != island.map().trees.end() &&
                  island.queue_ignition(fuel->id, island.world_generation()),
                  "Reset fixture could not retain a pending ignition");

@@ -1,4 +1,4 @@
-#include "particle_renderer.h"
+#include "render/particle_renderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -31,7 +31,7 @@ float logical_pixel_end(float physical, float side, float minimum, float scale)
 }
 } // namespace
 
-void ParticleRenderer::prepare(const ParticleSystem& system, const TreeSceneView& view)
+void ParticleRenderer::prepare(const ParticleSystem& system, const ActorSceneView& view)
 {
     particles_ = system.data();
     ordered_.resize(system.size());
@@ -54,15 +54,15 @@ void ParticleRenderer::prepare(const ParticleSystem& system, const TreeSceneView
         while (last < ordered_.size() && particles_[ordered_[last]].emitter_id == particle.emitter_id) {
             ++last;
         }
-        groups_.push_back({particle.emitter_id, snapped_tree_ground(particle.ground, view), first, last});
+        groups_.push_back({particle.emitter_id, snapped_actor_ground(particle.ground, view), first, last});
         first = last;
     }
 }
 
 void ParticleRenderer::draw(SDL_Renderer* renderer, const Group& group, ParticleKind kind,
-                             const TreeSceneView& view)
+                             const ActorSceneView& view)
 {
-    const float pixel_scale = tree_source_pixel_scale(view);
+    const float pixel_scale = actor_source_pixel_scale(view);
     if (pixel_scale <= 0.0f) {
         return;
     }

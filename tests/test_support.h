@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tile_map.h"
+#include "test_state.h"
 
 #include <cmath>
 #include <exception>
@@ -48,21 +48,21 @@ int run(const char* name, Function&& function)
     }
 }
 
-inline std::map<int, Tree> trees_by_cell(const TileMap& map)
+inline std::map<int, TreeRecord> trees_by_cell(const MapState& map)
 {
-    std::map<int, Tree> result;
-    for (const Tree& tree : map.trees) {
-        expect(map.contains(tree.hex), "Tree lies outside the map");
+    std::map<int, TreeRecord> result;
+    for (const TreeRecord& tree : map.trees) {
+        expect(map.contains(tree.hex), "TreeRecord lies outside the map");
         expect(result.emplace(map.index(tree.hex), tree).second, "Two trees occupy the same tile");
     }
     return result;
 }
 
-inline void expect_same_tree(const Tree& actual, const Tree& expected)
+inline void expect_same_tree(const TreeRecord& actual, const TreeRecord& expected)
 {
-    expect(actual.hex == expected.hex, "Tree coordinate changed");
-    expect(actual.variant == expected.variant, "Tree variant changed");
-    expect(actual.offset == expected.offset, "Tree ground offset changed");
+    expect(actual.hex == expected.hex, "TreeRecord coordinate changed");
+    expect(actual.variant == expected.variant, "TreeRecord variant changed");
+    expect(actual.offset == expected.offset, "TreeRecord ground offset changed");
 }
 
 } // namespace test

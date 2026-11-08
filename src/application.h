@@ -1,9 +1,9 @@
 #pragma once
 
 #include "gui/application_ui.h"
-#include "island_demo.h"
-#include "fire_effects.h"
-#include "tree_renderer.h"
+#include "simulation/simulation.h"
+#include "effects/fire_effects.h"
+#include "render/actor_renderer.h"
 
 #include <optional>
 
@@ -34,8 +34,8 @@ private:
     bool running_ = false;
 
     ApplicationUi ui_;
-    TreeRenderer trees_;
-    std::optional<IslandDemo> island_;
+    ActorRenderer actors_;
+    std::optional<Simulation> simulation_;
     ParticleSystem particles_;
     std::vector<FireEmitter> fire_emitters_;
     std::vector<WorldClick> world_clicks_;

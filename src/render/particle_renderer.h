@@ -1,8 +1,8 @@
 #pragma once
 
-#include "map_renderer.h"
-#include "particle_system.h"
-#include "tree_scene.h"
+#include "render/map_renderer.h"
+#include "effects/particle_system.h"
+#include "render/actor_scene.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -18,10 +18,10 @@ public:
     };
 
     // One grouping pass per frame; drawing each group only visits its particles.
-    void prepare(const ParticleSystem& system, const TreeSceneView& view);
+    void prepare(const ParticleSystem& system, const ActorSceneView& view);
     const std::vector<Group>& groups() const { return groups_; }
     void draw(SDL_Renderer* renderer, const Group& group, ParticleKind kind,
-              const TreeSceneView& view);
+              const ActorSceneView& view);
 
 private:
     const Particle* particles_ = nullptr;

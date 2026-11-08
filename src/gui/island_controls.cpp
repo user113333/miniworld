@@ -1,11 +1,11 @@
 #include "island_controls.h"
-#include "island_demo.h"
+#include "simulation/simulation.h"
 
 #include <imgui.h>
 
 #include <algorithm>
 
-void draw_island_controls(IslandDemo& island, bool& open)
+void draw_island_controls(Simulation& simulation, bool& open)
 {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     const float scale = ImGui::GetStyle().FontScaleDpi;
@@ -16,8 +16,8 @@ void draw_island_controls(IslandDemo& island, bool& open)
                             ImGuiCond_FirstUseEver, ImVec2(1, 0));
     ImGui::SetNextWindowSize(ImVec2(240.0f * scale, 0), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Island", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Current seed: %u", island.map().seed);
-        IslandSettings& settings = island.settings;
+        ImGui::Text("Current seed: %u", simulation.map().seed);
+        IslandSettings& settings = simulation.island_settings;
         ImGui::InputScalar("Seed", ImGuiDataType_U32, &settings.seed);
         ImGui::InputInt("Width", &settings.width);
         ImGui::InputInt("Height", &settings.height);
@@ -28,11 +28,11 @@ void draw_island_controls(IslandDemo& island, bool& open)
             settings.tree_density = density_percent / 100.0f;
         }
         if (ImGui::Button("Generate")) {
-            island.generate();
+            simulation.generate();
         }
         ImGui::SameLine();
         if (ImGui::Button("Regenerate")) {
-            island.regenerate();
+            simulation.regenerate();
         }
         ImGui::TextUnformatted("Seed, size and density apply on generation.");
     }

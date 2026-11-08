@@ -1,4 +1,4 @@
-#include "hex_grid.h"
+#include "world/hex_grid.h"
 #include "test_support.h"
 
 #include <algorithm>
@@ -7,7 +7,7 @@
 namespace {
 void check_storage(glm::ivec2 size)
 {
-    TileMap map{size.x, size.y, 0, std::vector<Terrain>(size.x * size.y, Terrain::water), {}};
+    test::MapState map{size.x, size.y, 0, std::vector<Terrain>(size.x * size.y, Terrain::water), {}};
     const int middle = (size.y / 2) * size.x + size.x / 2;
     test::expect(map.hex_at(middle) == glm::ivec2(0, 0), "Middle tile is not world origin");
     test::expect(map.index({0, 0}) == middle, "World origin has wrong storage index");
@@ -67,7 +67,7 @@ int main()
         for (glm::ivec2 size : {glm::ivec2{12, 12}, {13, 13}, {12, 71}, {95, 12}, {48, 32}, {96, 72}}) {
             test::with_context(std::to_string(size.x) + "x" + std::to_string(size.y), [&] { check_storage(size); });
         }
-        const TileMap small{4, 4, 0, std::vector<Terrain>(16, Terrain::water), {}};
+        const test::MapState small{4, 4, 0, std::vector<Terrain>(16, Terrain::water), {}};
         test::expect(small.hex_at(0) == glm::ivec2(-1, -2), "Known upper-left coordinate changed");
         test::expect(small.hex_at(4) == glm::ivec2(-1, -1), "Odd-row coordinate conversion changed");
         test::expect(small.hex_at(15) == glm::ivec2(1, 1), "Known lower-right coordinate changed");

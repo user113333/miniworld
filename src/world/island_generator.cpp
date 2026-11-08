@@ -1,5 +1,5 @@
-#include "island_generator.h"
-#include "hex_grid.h"
+#include "world/island_generator.h"
+#include "world/hex_grid.h"
 
 #include <algorithm>
 #include <stdexcept>

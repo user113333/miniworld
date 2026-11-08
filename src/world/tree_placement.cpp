@@ -1,5 +1,5 @@
-#include "tree_placement.h"
-#include "hex_grid.h"
+#include "world/tree_placement.h"
+#include "world/hex_grid.h"
 
 #include <algorithm>
 
@@ -34,9 +34,9 @@ float forest_suitability(glm::ivec2 hex, std::uint32_t seed)
     return suitability * suitability;
 }
 
-void place_trees(TileMap& map, float density)
+std::vector<TreeSpawn> place_trees(const TileMap& map, float density)
 {
-    map.trees.clear();
+    std::vector<TreeSpawn> trees;
     density = glm::clamp(density, 0.0f, 1.0f);
     struct Candidate {
         glm::ivec2 hex;
@@ -64,7 +64,7 @@ void place_trees(TileMap& map, float density)
         return a.hex.y == b.hex.y ? a.hex.x < b.hex.x : a.hex.y < b.hex.y;
     });
     const auto count = static_cast<std::size_t>(glm::round(candidates.size() * density));
-    map.trees.reserve(count);
+    trees.reserve(count);
     for (std::size_t index = 0; index < count; ++index) {
         const Candidate& candidate = candidates[index];
         const std::uint32_t position_hash = tree_hash(candidate.hex, map.seed ^ 0xa511e9b3u);
@@ -72,6 +72,7 @@ void place_trees(TileMap& map, float density)
                                  static_cast<float>(position_hash >> 16) / 65535.0f};
         // The whole offset square lies within the hex's inscribed circle.
         const glm::vec2 offset = (fraction - 0.5f) * 0.8f;
-        map.trees.push_back({candidate.hex, (candidate.hash >> 24) % 3, offset});
+        trees.push_back({candidate.hex, (candidate.hash >> 24) % 3, offset});
     }
+    return trees;
 }

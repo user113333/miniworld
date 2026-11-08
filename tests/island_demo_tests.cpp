@@ -1,15 +1,16 @@
-#include "island_demo.h"
+#include "world_fixture.h"
+#include "simulation/simulation.h"
 #include "test_support.h"
 
 namespace {
 
 void check_reset()
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.seed = 74129;
     island.settings.simulation_speed = 2.0f;
     island.regenerate();
-    const TileMap original = island.map();
+    const test::MapState original = island.map();
     const auto original_generation = island.world_generation();
 
     // One completed tick and half a tick waiting in the accumulator.
@@ -40,7 +41,7 @@ void check_reset()
 
 void check_pause_and_inactivity()
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.simulation_speed = 3.0f;
     island.advance_simulation(SimulationClock::base_step_seconds / 6.0);
     island.toggle_pause();
@@ -60,10 +61,10 @@ void check_pause_and_inactivity()
 
 void check_live_world_and_initial_density()
 {
-    IslandDemo island;
+    test::SimulationFixture island;
     island.settings.seed = 74129;
     island.regenerate();
-    const TileMap original = island.map();
+    const test::MapState original = island.map();
     const auto generation = island.world_generation();
     island.settings.tree_density = 0.0f;
     test::expect(island.map().trees.size() == original.trees.size(),
@@ -71,7 +72,7 @@ void check_live_world_and_initial_density()
     island.settings.simulation_speed = 8.0f;
     island.advance_simulation(0.25);
     test::expect(island.clock().elapsed_seconds() == 2.0, "Simulation elapsed display is incorrect");
-    const Tree& tree = island.map().trees.front();
+    const test::TreeRecord& tree = island.map().trees.front();
     test::expect(tree.id == original.trees.front().id &&
                  tree.age_ticks == original.trees.front().age_ticks + 64,
                  "Controller did not drive living trees at world cadence");

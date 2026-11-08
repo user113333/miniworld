@@ -1,7 +1,5 @@
 #pragma once
 
-#include "actors/tree.h"
-
 #include <glm/glm.hpp>
 
 #include <cstdint>
@@ -26,7 +24,6 @@ struct TileMap {
     int height;
     std::uint32_t seed;
     std::vector<Terrain> tiles;
-    std::vector<Tree> trees;
     std::vector<BurnRecovery> recovery;
 
     // World (0, 0) is the middle storage tile, not the upper-left corner.
