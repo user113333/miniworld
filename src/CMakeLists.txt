@@ -14,3 +14,9 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3)
 add_executable(miniworld main.cpp)
 target_compile_features(miniworld PRIVATE cxx_std_17)
 target_link_libraries(miniworld PRIVATE imgui)
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/res/fonts/plex.ttf
+    ${CMAKE_CURRENT_BINARY_DIR}/res/fonts/plex.ttf
+    COPYONLY
+)

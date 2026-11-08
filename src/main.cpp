@@ -4,6 +4,8 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
 
+#include <string>
+
 int main(int, char**)
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -25,6 +27,19 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     ImGui::StyleColorsDark();
+
+    const char* base_path = SDL_GetBasePath();
+    const std::string font_path = std::string(base_path ? base_path : "") + "res/fonts/plex.ttf";
+    SDL_PathInfo font_info;
+    if (!SDL_GetPathInfo(font_path.c_str(), &font_info) ||
+        !ImGui::GetIO().Fonts->AddFontFromFileTTF(font_path.c_str(), 18.0f)) {
+        SDL_Log("Failed to load font: %s", font_path.c_str());
+        ImGui::DestroyContext();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
 
     const bool platform_ready = ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     const bool renderer_ready = platform_ready && ImGui_ImplSDLRenderer3_Init(renderer);
