@@ -6,6 +6,9 @@ set(SDL_STATIC ON CACHE BOOL "Build static SDL libraries")
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build SDL test library")
 add_subdirectory(lib/sdl EXCLUDE_FROM_ALL)
 
+set(GLM_BUILD_LIBRARY OFF CACHE BOOL "Use header-only GLM")
+add_subdirectory(lib/glm EXCLUDE_FROM_ALL)
+
 set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/lib/imgui")
 find_package(Freetype REQUIRED)
 add_library(imgui STATIC
@@ -23,9 +26,15 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3)
 target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 target_link_libraries(imgui PRIVATE Freetype::Freetype)
 
-add_executable(miniworld src/main.cpp src/application_ui.cpp)
+add_executable(miniworld
+    src/main.cpp
+    src/application_ui.cpp
+    src/island_generator.cpp
+    src/map_renderer.cpp
+    src/island_demo.cpp
+)
 target_compile_features(miniworld PRIVATE cxx_std_17)
-target_link_libraries(miniworld PRIVATE imgui)
+target_link_libraries(miniworld PRIVATE imgui glm::glm)
 
 configure_file(
     ${PROJECT_SOURCE_DIR}/res/fonts/CozetteVector.ttf

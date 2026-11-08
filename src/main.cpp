@@ -1,4 +1,5 @@
 #include "application_ui.h"
+#include "island_demo.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -49,6 +50,7 @@ int main(int, char**)
         return 1;
     }
 
+    IslandDemo island;
     bool running = true;
     while (running) {
         SDL_Event event;
@@ -74,12 +76,14 @@ int main(int, char**)
         ImGui::NewFrame();
 
         ui.draw(running);
+        island.draw_controls();
 
         ImGui::Render();
         // The ImGui renderer backend applies DisplayFramebufferScale itself.
         SDL_SetRenderScale(renderer, 1.0f, 1.0f);
         SDL_SetRenderDrawColor(renderer, 30, 35, 45, 255);
         SDL_RenderClear(renderer);
+        island.draw(renderer);
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
