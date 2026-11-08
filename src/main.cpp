@@ -1,10 +1,10 @@
+#include "application_ui.h"
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
-
-#include <string>
 
 int main(int, char**)
 {
@@ -16,7 +16,8 @@ int main(int, char**)
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     if (!SDL_CreateWindowAndRenderer("Miniworld", 1920, 1080,
-                                    SDL_WINDOW_RESIZABLE, &window, &renderer)) {
+                                    SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+                                    &window, &renderer)) {
         SDL_Log("Window creation failed: %s", SDL_GetError());
         SDL_Quit();
         return 1;
@@ -25,15 +26,8 @@ int main(int, char**)
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    ImGui::StyleColorsDark();
-
-    const char* base_path = SDL_GetBasePath();
-    const std::string font_path = std::string(base_path ? base_path : "") + "res/fonts/plex.ttf";
-    SDL_PathInfo font_info;
-    if (!SDL_GetPathInfo(font_path.c_str(), &font_info) ||
-        !ImGui::GetIO().Fonts->AddFontFromFileTTF(font_path.c_str(), 18.0f)) {
-        SDL_Log("Failed to load font: %s", font_path.c_str());
+    ApplicationUi ui;
+    if (!ui.initialize()) {
         ImGui::DestroyContext();
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -56,7 +50,6 @@ int main(int, char**)
     }
 
     bool running = true;
-    bool show_demo_window = false;
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -77,29 +70,14 @@ int main(int, char**)
 
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
+        ui.update_scale(window);
         ImGui::NewFrame();
 
-        if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Quit")) {
-                    running = false;
-                }
-                ImGui::EndMenu();
-            }
-            if (ImGui::BeginMenu("View")) {
-                ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window);
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }
-
-        if (show_demo_window) {
-            ImGui::ShowDemoWindow(&show_demo_window);
-        }
+        ui.draw(running);
 
         ImGui::Render();
-        const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
-        SDL_SetRenderScale(renderer, scale.x, scale.y);
+        // The ImGui renderer backend applies DisplayFramebufferScale itself.
+        SDL_SetRenderScale(renderer, 1.0f, 1.0f);
         SDL_SetRenderDrawColor(renderer, 30, 35, 45, 255);
         SDL_RenderClear(renderer);
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
