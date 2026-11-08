@@ -31,10 +31,13 @@ The milestone record is [here](tasks/hex-island-generation.md).
 | `hex_grid.h`, `tile_map.h` | Axial geometry and centered odd-row storage |
 | `island_generator.*`, `tree_placement.*` | Seeded terrain and forest generation |
 | `map_renderer.*`, `tree_renderer.*` | SDL drawing, map fitting and sprite resources |
+| `tests/` | Permanent CTest world regressions and readable seed snapshots |
 
 Use the existing SDL3, ImGui, GLM submodules and system FreeType. SDL includes
 PNG loading; SDL_image is unnecessary. Root CMake copies required assets next
 to the executable. Keep CMake in the root and use the Ninja `debug` preset.
+The `miniworld_world` static target shares unchanged terrain/forest logic and
+GLM between the application and tests, without SDL or ImGui dependencies.
 
 ## UI fixes after project review
 
@@ -55,6 +58,7 @@ Map drawing applies framebuffer scale once; ImGui's backend handles its own scal
 ```sh
 cmake --preset debug
 cmake --build --preset debug
+ctest --preset debug
 ./cmake-build-debug/miniworld
 ```
 
@@ -71,16 +75,36 @@ For desktop review, repeat dimension changes and check first-open placement with
 fresh ImGui settings, then verify an existing saved position is not reset. Native
 monitor transitions still need manual checking; simulated scale is not a substitute.
 
-There is no committed test runner yet. Earlier generation/rendering checks used
-one-off harnesses outside the repository; temporary files and screenshots are not
-required project artifacts and should not be relied on after a session reset.
+## Permanent world tests
+
+`ctest --preset debug` runs four suites:
+
+- `world.hex_grid`: centered axial/storage round trips, bounds, neighbor reciprocity,
+  regular geometry and identical shared corners for adjacent hexagons.
+- `world.island_generator`: valid/invalid dimensions, deterministic seeds, water
+  border, connected inland origin, coastal sand and representative seed variation.
+- `world.tree_placement`: unique eligible occupancy, deterministic variants and
+  offsets, unchanged terrain, density clamping/endpoints, stable forest growth,
+  empty/sparse maps and grouped placement across fixed reference seeds.
+- `world.seed_fixtures`: frozen terrain, positions, sprite variants and ground
+  offsets for three known seeds. These protect approved output during refactors.
+
+The tests use throwing checks instead of `assert`, so Release keeps validation
+enabled. See [tests/README.md](../tests/README.md) for fixture format and usage.
+Tests use no graphics driver or window and can be omitted with BUILD_TESTING=OFF.
+All four suites passed in Debug and Release. A deliberately altered fixture was
+rejected in Release with its seed/cell location; restoring it made the test pass.
+
+Earlier UI/rendering checks used one-off harnesses outside the repository. Those
+are still manual/non-permanent coverage; temporary screenshots are not required
+project artifacts and should not be relied on after a session reset.
 
 ## Deferred review suggestions
 
 These are future work, not authorization to start another milestone:
 
-1. Add small repository-owned CTest regressions for coordinates, seed fixtures,
-   connected island/water borders, tree eligibility/density/depth, and UI behavior.
+1. Extend permanent regression coverage to renderer pixel/depth ordering and UI
+   regeneration/DPI behavior. World generation and placement tests are in place.
 2. Simplify SDL/ImGui resource ownership and repeated cleanup in `main.cpp`.
 3. Improve names (`IslandDemo`, `storage_origin`, `Tree::offset`), centralize map
    limits and name generation/forest tuning values. Preserve current seeded output.
@@ -90,5 +114,5 @@ These are future work, not authorization to start another milestone:
    the vector is correctly default-initialized, but explicit intent would be clearer.
 6. Report SDL draw-call failures. Profile before adding render caches or abstractions.
 
-No source changes for these deferred suggestions were made as part of the two UI fixes.
+The two UI fixes and permanent world tests leave these other suggestions deferred.
 Follow AGENTS.md: summarize validation and wait for approval before every commit.

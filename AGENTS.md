@@ -17,6 +17,7 @@
 - Use CMake presets and Ninja.
 - Keep build definitions in the root CMakeLists.txt.
 - Build after code changes.
+- Run affected CTest tests; `ctest --preset debug` runs the full regression suite.
 
 # Scope
 - Do not modify vendored libraries in lib/ unless requested.

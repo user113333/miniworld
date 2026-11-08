@@ -58,5 +58,6 @@ One-off C++ harnesses checked:
   overlapping pixels matched the lower tree's isolated render.
 - Application startup, origin placement and Island window close/reopen behavior.
 
-Ninja builds passed throughout. These historical harnesses were not committed;
-see project status for current validation, manual checks and the durable-test backlog.
+Ninja builds passed throughout. These historical harnesses were not committed.
+Permanent CTest world regressions and seed snapshots were added afterward;
+see project status for the current suite and remaining UI/render validation.

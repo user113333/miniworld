@@ -26,18 +26,24 @@ target_link_libraries(imgui PUBLIC SDL3::SDL3)
 target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 target_link_libraries(imgui PRIVATE Freetype::Freetype)
 
+add_library(miniworld_world STATIC
+    src/island_generator.cpp
+    src/tree_placement.cpp
+)
+target_include_directories(miniworld_world PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(miniworld_world PUBLIC cxx_std_17)
+target_link_libraries(miniworld_world PUBLIC glm::glm)
+
 add_executable(miniworld
     src/main.cpp
     src/application_ui.cpp
-    src/island_generator.cpp
     src/map_renderer.cpp
     src/island_demo.cpp
     src/island_controls.cpp
-    src/tree_placement.cpp
     src/tree_renderer.cpp
 )
 target_compile_features(miniworld PRIVATE cxx_std_17)
-target_link_libraries(miniworld PRIVATE imgui glm::glm)
+target_link_libraries(miniworld PRIVATE imgui miniworld_world)
 
 configure_file(
     ${PROJECT_SOURCE_DIR}/res/fonts/CozetteVector.ttf
@@ -57,3 +63,15 @@ foreach(tree IN ITEMS tree1 tree2 tree3)
         COPYONLY
     )
 endforeach()
+
+include(CTest)
+if(BUILD_TESTING)
+    foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures)
+        add_executable(${suite}_tests tests/${suite}_tests.cpp)
+        target_link_libraries(${suite}_tests PRIVATE miniworld_world)
+        add_test(NAME world.${suite} COMMAND ${suite}_tests)
+    endforeach()
+    target_compile_definitions(seed_fixtures_tests PRIVATE
+        TEST_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+    )
+endif()

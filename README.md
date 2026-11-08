@@ -1,6 +1,6 @@
 # Miniworld - 2d colony simulator
 
-## Build and run
+## Build, test and run
 
 Requires CMake 3.21+, Ninja, a C/C++ compiler, FreeType development files,
 and SDL3 platform dependencies.
@@ -9,6 +9,7 @@ and SDL3 platform dependencies.
 git submodule update --init --recursive
 cmake --preset debug
 cmake --build --preset debug
+ctest --preset debug
 ./cmake-build-debug/miniworld
 ```
 
