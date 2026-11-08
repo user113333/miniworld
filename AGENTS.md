@@ -1,5 +1,16 @@
 # Act as a Human
 - Work on small tasks
-- Commit after task is done
-- Write small commit messages
-- Make code readable, split it into multiple files
+- Make code readable.
+- Split code into files when it improves readability.
+
+# Git Commit
+- Before committing, summarize the changes and validation, then wait for my approval.
+- Use short, descriptive commit messages.
+
+# Build
+- Use CMake presets and Ninja.
+- Build after code changes.
+
+# Scope
+- Do not modify vendored libraries in lib/ unless requested.
+- Leave unrelated local changes untouched.
