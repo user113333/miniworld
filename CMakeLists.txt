@@ -36,6 +36,7 @@ target_link_libraries(miniworld_world PUBLIC glm::glm)
 
 add_executable(miniworld
     src/main.cpp
+    src/application.cpp
     src/application_ui.cpp
     src/map_renderer.cpp
     src/island_demo.cpp

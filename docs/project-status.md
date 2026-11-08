@@ -25,7 +25,8 @@ The milestone record is [here](tasks/hex-island-generation.md).
 
 | Files | Responsibility |
 | --- | --- |
-| `main.cpp` | SDL/ImGui lifecycle and frame orchestration |
+| `main.cpp` | Entry point and top-level exception reporting |
+| `application.*` | Scoped SDL/ImGui ownership, initialization, events and frame orchestration |
 | `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `hex_grid.h`, `tile_map.h` | Axial geometry and centered odd-row storage |
@@ -52,6 +53,24 @@ Implemented and validated:
 Frame order: platform/backend NewFrame → UI actions → fit current map → origin
 hint → ImGui::Render → water clear → terrain → trees → ImGui → present.
 Map drawing applies framebuffer scale once; ImGui's backend handles its own scale.
+
+## Application lifecycle
+
+`Application` owns one application session. `main` creates it and calls `run`;
+initialization, event polling, and frame drawing are separate private methods.
+World state is created after graphics/assets are ready. Generation and UI logic
+remain in their existing modules, and the frame order above is unchanged.
+
+The destructor handles both normal shutdown and partial initialization failures:
+tree textures → initialized ImGui backends → context → SDL renderer → window → SDL.
+Readiness flags guard incomplete startup; top-level exceptions unwind the owner
+before `main` reports failure. No cleanup paths are duplicated in `main`.
+
+Validated with the Ninja build and all four CTest suites. Isolated headless SDL
+checks verified normal quit events, actual entry-point startup/signal-to-quit,
+and startup failures for missing font/tree assets and invalid video/render drivers.
+After application destruction, SDL was uninitialized and the ImGui context null.
+These lifecycle smoke checks are not yet part of the permanent world-only suite.
 
 ## Validation and reproduction
 
@@ -105,14 +124,13 @@ These are future work, not authorization to start another milestone:
 
 1. Extend permanent regression coverage to renderer pixel/depth ordering and UI
    regeneration/DPI behavior. World generation and placement tests are in place.
-2. Simplify SDL/ImGui resource ownership and repeated cleanup in `main.cpp`.
-3. Improve names (`IslandDemo`, `storage_origin`, `Tree::offset`), centralize map
+2. Improve names (`IslandDemo`, `storage_origin`, `Tree::offset`), centralize map
    limits and name generation/forest tuning values. Preserve current seeded output.
-4. Consolidate duplicated hash/noise code only with seed-regression protection.
-5. Enable warnings on application targets. The review's `-Wall -Wextra -Wpedantic`
+3. Consolidate duplicated hash/noise code only with seed-regression protection.
+4. Enable warnings on application targets. The review's `-Wall -Wextra -Wpedantic`
    check found a missing `TileMap::trees` initializer warning in the generator;
    the vector is correctly default-initialized, but explicit intent would be clearer.
-6. Report SDL draw-call failures. Profile before adding render caches or abstractions.
+5. Report SDL draw-call failures. Profile before adding render caches or abstractions.
 
-The two UI fixes and permanent world tests leave these other suggestions deferred.
+The UI fixes, permanent world tests and lifecycle refactor leave these suggestions deferred.
 Follow AGENTS.md: summarize validation and wait for approval before every commit.
