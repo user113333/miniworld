@@ -1,13 +1,13 @@
 # Tree-fire particles — implementation plan
 
-Status: planned only; no code or assets changed.
+Status: particles planned only; the shared foundation clock is implemented.
 Baseline: `master`, application lifecycle refactor `98dc328`.
 Read `AGENTS.md`, `docs/project-status.md`, and the
 [colony simulation plan](colony-simulation-foundation.md) first.
 
-This is the visual companion to the planned tree/fire simulation. Neither fire
-simulation nor simulation time exists in the current code. Implement this task
-only after the clock and burning-tree state are available and implementation is
+This is the visual companion to the planned tree/fire simulation. Foundation
+Phase 1 now provides simulation time; burning-tree state is still planned.
+Implement this task only after the clock and burning-tree state are available and implementation is
 authorized. Obtain approval before each commit. No external libraries or assets.
 
 ## Goal and scope
@@ -27,6 +27,8 @@ Exclude bloom, soft sprites, shaders, GPU simulation, lighting, collisions, wind
 heat diffusion, new gameplay controls and a general-purpose effects framework.
 
 ## Architecture inspection
+
+These findings describe the pre-foundation baseline. Phase 1 has since added the clock.
 
 - `Application::draw_frame` currently orchestrates UI, map fitting, SDL world
   drawing and ImGui. No elapsed-time update or particle system exists yet.
@@ -67,9 +69,8 @@ first and then apply the final fire snapshot to the entire elapsed interval.
 - Reset/Generate/Regenerate clears particles, emitter credits, IDs, visual random
   counters and scheduling state, including residual smoke. No old-world effects.
 
-This clock refinement is planning-only and must be implemented consistently in
-foundation Phase 1 before adding particles. Gameplay probabilities continue to
-use the 0.25-second world interval, not the finer visual interval.
+This clock refinement is implemented in foundation Phase 1. Gameplay probabilities
+continue to use the 0.25-second world interval, not the finer visual interval.
 
 ## Minimal ownership and interfaces
 
@@ -252,6 +253,7 @@ and long-run stable memory/frame times. Profile before increasing complexity.
 - [ ] Renderer and depth integration implemented.
 - [ ] Real-fire integration and visual review complete.
 
-Planning only changed Markdown. No source, CMake, images, fixtures or tests were
-modified or executed. Next session should inspect current git status, read both
-plans, and obtain implementation authorization before starting the prerequisites.
+Particle planning only changed Markdown; no particle implementation has started.
+The foundation clock prerequisite is now implemented and tested. Next session
+should inspect current git status and read both plans; living forests and burning
+state remain prerequisites for real-fire integration.

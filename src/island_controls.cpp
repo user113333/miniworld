@@ -37,6 +37,15 @@ void draw_island_controls(IslandDemo& island, bool& open)
             island.regenerate();
         }
         ImGui::TextUnformatted("Edit seed, then Regenerate.");
+        ImGui::Separator();
+        ImGui::SliderFloat("Speed", &settings.simulation_speed, 0.0f,
+                           static_cast<float>(SimulationClock::max_speed), "%.2fx",
+                           ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::Button(settings.simulation_speed > 0.0f ? "Pause" : "Resume")) {
+            island.toggle_pause();
+        }
+        ImGui::SameLine();
+        ImGui::Text("Simulation: %.2f s", island.clock().elapsed_seconds());
     }
     ImGui::End();
 }

@@ -1,6 +1,6 @@
 # Colony simulation foundation — implementation plan
 
-Status: planned only. No implementation has started.
+Status: Phase 1 implemented; Phases 2–4 remain planned.
 Baseline: `master`, lifecycle refactor `98dc328`; world CTest suite `3f0a536`.
 Read `AGENTS.md` and `docs/project-status.md` first in a new session.
 
@@ -25,6 +25,8 @@ approval before each small, logical commit.
    update costs bounded. Preserve the approved initial island/forest layouts.
 
 ## Inspection findings
+
+These describe the planning baseline; Phase 1 timing is now implemented as recorded below.
 
 - `Application` owns lifecycle/events/frame orchestration. It currently skips
   drawing while minimized and has no elapsed-time measurement or simulation update.
@@ -292,14 +294,32 @@ check bounded memory, occupancy consistency and absence of abrupt whole-forest r
 
 - [x] Inspect architecture, tests and supplied sprite canvases.
 - [x] Specify timing, state, input, fire, recovery and test strategy.
-- [ ] Phase 1: clock and speed controls.
+- [x] Phase 1: clock and speed controls.
 - [ ] Phase 2: living forests.
 - [ ] Phase 3: fire and manual ignition.
 - [ ] Phase 4: recovery and final validation.
 
-Only Markdown was changed while preparing this plan. No source, assets, CMake,
-fixtures or tests were modified, and no implementation/build was performed.
-Next session: inspect current git status (the two new tree PNGs are user assets),
-read this plan, run the existing baseline build/tests, and begin Phase 1 only when
-implementation is authorized. Defer workers, jobs, inventory, construction, weather,
-pathfinding, resource harvesting, save/load and generic simulation frameworks.
+Phase 1 adds `SimulationClock`, per-tick controller advancement, live 0–8x speed,
+Pause/Resume and elapsed seconds. Generate/Regenerate resets clock state while
+retaining speed; a world-generation counter prevents pre-reset frame time from
+advancing a new world. Minimized time, including the final inactive interval on
+restore, is discarded. `IslandDemo` now belongs to the domain library so its
+reset/pause integration can be tested without SDL or ImGui.
+
+Validation: baseline and updated Ninja debug builds/CTest pass. Six suites now
+cover the original world output, clock boundaries/cadence, equal-total frame
+partitions, pause/speed, invalid inputs, stall bounds, inactivity and controller
+resets. Seed fixtures and all PNG image data remain unchanged. No living-tree,
+fire, particle or recovery behavior was added.
+
+A one-off headless SDL/ImGui check exercised the production frame with real UI
+clicks: pause/resume, 0x/8x slider endpoints and both generation buttons apply
+their timing changes in the same frame. Reset discards an old 10-second delta,
+retains speed and advances normally on the next frame. Native minimize/restore
+still needs desktop checking; SDL's dummy video driver does not support it.
+
+Next session: read current status and check git status/Phase 1 approval before
+starting Phase 2. Its density slider semantics and supplied growing/dead sprites
+remain for that phase. Review pacing/appearance before starting fire. Defer workers,
+jobs, inventory, construction, weather, pathfinding, resource harvesting, save/load
+and generic simulation frameworks.

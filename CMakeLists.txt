@@ -29,6 +29,8 @@ target_link_libraries(imgui PRIVATE Freetype::Freetype)
 add_library(miniworld_world STATIC
     src/island_generator.cpp
     src/tree_placement.cpp
+    src/simulation_clock.cpp
+    src/island_demo.cpp
 )
 target_include_directories(miniworld_world PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(miniworld_world PUBLIC cxx_std_17)
@@ -39,7 +41,6 @@ add_executable(miniworld
     src/application.cpp
     src/application_ui.cpp
     src/map_renderer.cpp
-    src/island_demo.cpp
     src/island_controls.cpp
     src/tree_renderer.cpp
 )
@@ -67,7 +68,7 @@ endforeach()
 
 include(CTest)
 if(BUILD_TESTING)
-    foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures)
+    foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures simulation_clock island_demo)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)

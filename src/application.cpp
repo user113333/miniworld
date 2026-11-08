@@ -5,6 +5,8 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
 
+#include <chrono>
+
 Application::~Application()
 {
     // Textures and ImGui backends must be released before their SDL renderer.
@@ -68,16 +70,24 @@ int Application::run()
         return 1;
     }
     running_ = true;
+    auto previous_frame = std::chrono::steady_clock::now();
+    bool was_minimized = false;
     while (running_) {
+        const auto now = std::chrono::steady_clock::now();
+        const double real_seconds = std::chrono::duration<double>(now - previous_frame).count();
+        previous_frame = now;
         running_ = process_events();
         if (!running_) {
             break;
         }
         if (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) {
+            was_minimized = true;
             SDL_Delay(10);
             continue;
         }
-        draw_frame();
+        // Discard the final inactive interval as well as all minimized frames.
+        draw_frame(was_minimized ? 0.0 : real_seconds);
+        was_minimized = false;
     }
     return 0;
 }
@@ -97,7 +107,7 @@ bool Application::process_events()
     return running;
 }
 
-void Application::draw_frame()
+void Application::draw_frame(double real_seconds)
 {
     ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -105,11 +115,14 @@ void Application::draw_frame()
     ImGui::NewFrame();
 
     // UI actions can replace the map, so fit the view after processing them.
+    const auto generation_before_ui = island_->world_generation();
     ui_.draw(running_, *island_);
     const ImGuiIO& io = ImGui::GetIO();
     const float margin = 16.0f * ImGui::GetStyle().FontScaleDpi;
     const MapView view = fit_map(island_->map(), {margin, margin, io.DisplaySize.x - 2 * margin,
                                                io.DisplaySize.y - 2 * margin});
+    // Time measured before regeneration belongs to the old world.
+    island_->advance_simulation(island_->world_generation() == generation_before_ui ? real_seconds : 0.0);
     ui_.draw_origin_hint(view);
 
     ImGui::Render();

@@ -18,7 +18,7 @@ public:
 private:
     bool initialize();
     bool process_events();
-    void draw_frame();
+    void draw_frame(double real_seconds);
 
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
