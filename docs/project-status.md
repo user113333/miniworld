@@ -105,6 +105,12 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 - [Settlers, construction and sailing](tasks/settlers.md): draft plan for autonomous
   settlers, inventories, tree cutting, houses/fire, mountains, continuous movement
   and ships. Food rules are open; hunger, health and multiple islands are deferred.
+- [Asset management and browser](tasks/asset-management.md): shared content
+  catalog/loading, resource staging and an ImGui Assets window with thumbnails,
+  search and metadata, accessible from the top bar and View menu.
+- [Flecs entity explorer](tasks/flecs-entity-explorer.md): browse all live entity
+  categories/components and edit supported properties through validated simulation
+  commands, with reflection, paused editing and stale-reference protection.
 
 ## Deferred review
 
