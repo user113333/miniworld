@@ -1,13 +1,12 @@
 # Project status
 
-## Current task: Flecs actor simulation
+## Completed milestones
 
-The migration is tracked in [flecs-actor-simulation.md](tasks/flecs-actor-simulation.md).
 Flecs is now the authoritative actor store and executes ordered simulation systems.
 Implementation, review and Debug/Release validation are complete and user-approved.
 
-The previous [colony simulation foundation](tasks/colony-simulation-foundation.md)
-is complete and approved. Colonists, houses, jobs, pathfinding, construction and
+The colony simulation foundation is also complete and approved.
+Colonists, houses, jobs, pathfinding, construction and
 save/load remain later milestones.
 
 ## Architecture
