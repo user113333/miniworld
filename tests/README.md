@@ -1,4 +1,4 @@
-# World regression tests
+# Regression tests
 
 ```sh
 cmake --preset debug
@@ -6,11 +6,12 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The seven suites cover hex geometry/storage, island invariants, forest placement,
+The thirteen suites cover hex geometry/storage, island invariants, forest placement,
 fixed-seed snapshots, simulation clock accounting and controller pause/reset
-behavior, and living-forest lifecycle, occupancy and seeded replay. Checks stay
-active in Release. Tests link only the world logic and GLM; they need no display,
-SDL initialization, or new test library.
+behavior, living forests, fire, CPU particles, sprite picking and shared replay.
+Checks stay active in Release. Domain/effects tests need no SDL or display. The
+particle renderer suite draws to an SDL memory surface without a window or display
+driver. No new test library is required.
 Use `-DBUILD_TESTING=OFF` when configuring to omit the test executables.
 
 ## Seed snapshots
@@ -29,4 +30,5 @@ units. Comparisons ignore tree storage order and allow 0.000001 offset rounding.
 
 Keep snapshots unchanged during refactors. Update them only for an intentional,
 reviewed generation change; they are never regenerated automatically by tests.
-UI, rendering, DPI and pixel-level depth tests remain separate future work.
+Permanent UI-event and full-scene depth coverage remains future work; those checks
+currently use separate headless smoke harnesses.

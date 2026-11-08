@@ -43,6 +43,15 @@ void draw_island_controls(IslandDemo& island, bool& open)
         }
         ImGui::TextUnformatted("Seed, size and density apply on generation.");
         ImGui::Separator();
+        ImGui::Checkbox("Ignite trees", &settings.ignite_trees);
+        if (settings.ignite_trees) {
+            ImGui::TextUnformatted("Click a tree. Esc exits the tool.");
+        }
+        if (island.pending_ignitions() > 0) {
+            ImGui::Text("Ignitions queued: %zu%s", island.pending_ignitions(),
+                        settings.simulation_speed == 0.0f ? " (paused)" : "");
+        }
+        ImGui::Separator();
         int speed = static_cast<int>(settings.simulation_speed);
         if (ImGui::SliderInt("Speed", &speed, 0,
                              static_cast<int>(SimulationClock::max_speed), "%dx",

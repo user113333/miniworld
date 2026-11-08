@@ -1,6 +1,6 @@
 # Tree-fire particles — implementation plan
 
-Status: particles planned only; the shared foundation clock is implemented.
+Status: CPU pool, drawing and real-fire integration implemented; desktop review remains.
 Baseline: `master`, application lifecycle refactor `98dc328`.
 Read `AGENTS.md`, `docs/project-status.md`, and the
 [colony simulation plan](colony-simulation-foundation.md) first.
@@ -125,8 +125,9 @@ linked lists, per-tree particle pools or frame-driven resizing.
   work is bounded by 400 steps; no all-pairs particle/tree checks.
 - At capacity, drop cosmetic spawn requests instead of allocating or delaying
   gameplay. Do not kill arbitrary living particles to make room.
-- Serve flame requests before smoke/embers, and rotate the starting emitter in
-  stable-ID order per base step so early trees cannot permanently monopolize slots.
+- Serve flame requests before smoke/embers. Advance the stable-ID round-robin
+  cursor past the last granted flame, retaining the next unserved source while
+  full so early trees cannot monopolize slots during a short mass fire.
 - Consume failed emission attempts: retain fractional credit only, not an
   ever-growing backlog that later produces an explosive burst.
 - Track active/dropped counts for tests/profiling. Debug display is optional;
@@ -240,7 +241,7 @@ Add permanent CTest coverage, retaining all world snapshots unchanged:
   correct alpha/blend restoration, depth occlusion and read-only render calls.
 
 Manually review one fire, several clustered fires and hundreds of fires at 0x,
-1x and 8x. Check buildup/burnout, occasional smoke rather than a solid cloud,
+1x and 50x. Check buildup/burnout, occasional smoke rather than a solid cloud,
 visible embers, paused window resizing, UI capture, foreground-tree occlusion,
 and long-run stable memory/frame times. Profile before increasing complexity.
 
@@ -248,12 +249,41 @@ and long-run stable memory/frame times. Profile before increasing complexity.
 
 - [x] Inspect renderer and foundation plan.
 - [x] Define shared timing, particle data, pool, emission and draw order.
-- [ ] Foundation clock/fire prerequisites implemented.
-- [ ] CPU pool and tests implemented.
-- [ ] Renderer and depth integration implemented.
-- [ ] Real-fire integration and visual review complete.
+- [x] Foundation clock/fire prerequisites implemented.
+- [x] CPU pool and tests implemented.
+- [x] Renderer and depth integration implemented.
+- [x] Real-fire integration implemented and headless regressions pass.
+- [ ] Desktop visual/pacing review.
 
-Particle planning only changed Markdown; no particle implementation has started.
-The foundation clock prerequisite is now implemented and tested. Next session
-should inspect current git status and read both plans; living forests and burning
-state remain prerequisites for real-fire integration.
+Implementation uses a separate GLM-only effects target with a fixed 4,096-slot
+active prefix, fractional per-kind credits, independent keyed visual samples and
+flame-first round-robin service. Saturation consumes failed attempts without backlog.
+Emitter removal stops births while particles finish at stored ground anchors.
+
+Application resets effects on world-generation changes and drives each admitted
+base tick through world update, emitter refresh at world cadence, then particles.
+Shared scene layout supports sprite picking and crisp physical-pixel squares.
+TreeRenderer merges emitter/tree entries so smoke precedes the sprite and flames/
+embers follow it, with later foreground trees covering complete background groups.
+
+The debug build and thirteen CTest suites pass, including visual capacity-independent
+gameplay replay, pool saturation/fairness, pause/reset, source/pool-order replay,
+tick partitioning at 50x and transparent/DPI sprite picking. No image assets or
+vendored files changed. Desktop inspection remains part of review; burned-ground
+recovery is the foundation's next phase.
+
+Permanent SDL memory-surface tests verify exact square coverage at fractional and
+nonuniform DPI, clipped edges, blend restoration and read-only draws. A directed
+rounding fix handles SDL's software quad/fill conversion without losing edge pixels.
+One-off software checks passed alpha/layering, foreground occlusion and residual
+particle depth. Real cluster/mass-fire captures at 2/6/12/24 seconds were inspected.
+
+Synthetic Debug profiling of 400 peak ticks took approximately 95/125/444 ms for
+500/1,000/6,912 emitters after caching intensity once per source/tick. Counts stayed
+bounded at 4,096; overload dropped requests without backlog. Extreme all-cell fire
+can cause noticeable Debug catch-up even though work remains bounded.
+
+Mass-fire review strengthened fairness: the cursor advances with granted flames,
+instead of moving only one source per tick. A sustained 3,000-fire regression
+requires every source to receive visible flames during the middle of the burn;
+a one-slot test prevents service from phase-locking onto a subset of equal fires.

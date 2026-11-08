@@ -8,14 +8,14 @@ The milestone record is [here](tasks/hex-island-generation.md).
 
 Long-term direction: develop this prototype into a colony simulation. The next
 task is tracked in [colony-simulation-foundation.md](tasks/colony-simulation-foundation.md).
-Phases 1 (clock and speed controls) and 2 (living forests) are implemented.
-Fire, particles and recovery remain planned.
+Phases 1–3 (clock, living forests, fire and particle visuals) are implemented.
+Burned-ground recovery remains planned.
 
 1. Implemented: shared fixed-step simulation time, pause and speed controls.
 2. Implemented: gradual tree births, grass-weighted forest growth, aging, death and decay,
    using the supplied `tree_growing.png` and `tree_dead.png`.
-3. Add simulation-time fire spread and an ImGui click-to-ignite tool.
-4. Add burned terrain and gradual recovery allowing later tree regrowth.
+3. Implemented: simulation-time fire spread, click-to-ignite and particle visuals.
+4. Add gradual burned-ground recovery allowing later tree regrowth.
 
 The plan covers deterministic updates, occupancy, overlapping-sprite picking,
 initial-density behavior, reset semantics, performance limits and CTest additions.
@@ -27,8 +27,8 @@ logic and SDL drawing stay separate from fire propagation and cannot affect it.
 The two extra sprites are user-supplied assets; their image data must remain unchanged.
 
 Phase 1 adds a domain-only `SimulationClock`, owned by `IslandDemo`. It admits at
-most 250 ms of real time per frame at 0–50x speed (whole-number slider steps), advances 32 Hz base ticks and
-exposes the eight-tick world cadence for later phases. The Island window has a
+most 250 ms of real time per frame at 0–50x speed (whole-number slider steps),
+advances 32 Hz base ticks and exposes the eight-tick world cadence. The Island window has a
 speed slider, Pause/Resume (restoring the previous speed) and elapsed simulation
 seconds. Pause preserves fractional time; minimized time and the first restored
 interval are discarded. Generate/Regenerate resets time and fractional steps,
@@ -48,8 +48,31 @@ without changing their image data; anchors, pixel scaling and depth ordering sta
 the same. Pause freezes lifecycle and births along with the shared clock. Reset
 clears the living state, occupancy and ID allocation while retaining speed.
 
-Next: review Phase 2 pacing/appearance before starting fire. The older island task
-stays complete.
+Phase 3 adds the **Ignite trees** tool. Each left-button press picks the frontmost
+opaque tree pixel, respecting ImGui capture and physical-pixel sprite layout.
+Escape or the checkbox cancels tool mode. Paused clicks queue stable IDs and show
+a pending count; ignition starts on the next world update after resume. Regenerate
+clears commands/tool mode and rejects old-world clicks even if tree IDs are reused.
+
+Saplings, mature trees and uncharred dead wood burn and can spread to the six
+neighbor cells. Spread uses start-of-update fires, combined neighbor pressure and
+one deterministic decision per target. Burn-down leaves inert charred remains and
+canonical burned terrain. Ordinary age death never scorches ground.
+
+Application owns a shared fixed 4,096-slot CPU particle pool for pixel flames,
+smoke and embers. It advances after each base tick's world update, sharing pause,
+speed and reset. Effects use an independent seeded stream and cannot change the
+world. Drawing groups by ground depth so foreground trees cover background fires;
+short residual particles outlive their emitter without retaining tree pointers.
+
+Burning trees also receive a steady muted red tint, independent of particle pool
+capacity. It appears only after ignition, freezes with pause and ends at burnout.
+Shared sprite texture modulation is restored after each draw; unlit neighbors and
+the supplied image data remain unchanged.
+
+Next: review Phase 3 before recovery. **Temporary limitation:** burned cells stay
+burned and cannot regrow trees until Phase 4 implements recovery. Saved original
+terrain and bounded recovery durations are already recorded at burn-down.
 
 The user-approved speed extension raises the per-frame bound to 400 base ticks
 and 50 world updates at 50x. Fractional time and fixed-step replay are preserved.
@@ -68,8 +91,8 @@ and 50 world updates at 50x. Fractional time and fixed-step replay are preserved
 - Cozette at 13 px with FreeType monochrome hinting; ImGui docking is removed.
 - View > Island and View > ImGui demo toggle the windows. Island can be closed.
 - Generate chooses a random seed; Regenerate uses the edited seed/dimensions.
-  Initial density applies on generation; living forests evolve without terrain changes.
-- No castle, house integration, camera, grid, or gameplay. `house1.png` is unused.
+  Initial density applies on generation; natural tree turnover leaves terrain unchanged.
+- No colonists, castle, house integration, camera or grid. `house1.png` is unused.
 
 ## Code ownership
 
@@ -80,17 +103,23 @@ and 50 world updates at 50x. Fractional time and fixed-step replay are preserved
 | `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |
-| `world_simulation.*` | Stable IDs, occupancy, seeded births and tree lifecycles |
+| `world_simulation.*` | Seeded ecology/fire, stable IDs, occupancy and burn records |
 | `hex_grid.h`, `tile_map.h` | Axial geometry and centered odd-row storage |
 | `island_generator.*`, `tree_placement.*` | Seeded terrain and forest generation |
 | `map_renderer.*`, `tree_renderer.*` | SDL drawing, map fitting and sprite resources |
-| `tests/` | Permanent CTest world regressions and readable seed snapshots |
+| `tree_scene.*` | Shared sprite layout, depth ordering and alpha-mask picking; GLM only |
+| `particle_system.*` | Bounded seeded CPU effects; GLM only |
+| `fire_effects.*`, `particle_renderer.*` | Read-only fire adapter and SDL square drawing |
+| `tests/` | Permanent CTest domain/effects/pixel regressions and seed snapshots |
 
 Use the existing SDL3, ImGui, GLM submodules and system FreeType. SDL includes
 PNG loading; SDL_image is unnecessary. Root CMake copies required assets next
 to the executable. Keep CMake in the root and use the Ninja `debug` preset.
 The `miniworld_world` static target shares terrain/forest logic, simulation,
 `IslandDemo` and GLM between the application and tests, without SDL or ImGui dependencies.
+The separate `miniworld_effects` target contains CPU particles and scene layout.
+The world library does not depend on it; application-level code adapts burning
+trees into emitter views after world updates.
 
 ## UI fixes after project review
 
@@ -103,7 +132,7 @@ Implemented and validated:
    Current frame height is checked because viewport WorkPos can lag by a frame.
 
 Frame order: measure monotonic elapsed time → events → platform/backend NewFrame
-→ UI actions → fit current map → advance simulation ticks → origin
+→ UI actions → fit current map → resolve world clicks → advance world/effects ticks → origin
 hint → ImGui::Render → water clear → terrain → trees → ImGui → present.
 Map drawing applies framebuffer scale once; ImGui's backend handles its own scale.
 
@@ -150,6 +179,18 @@ checks executed the production frame code with simulated mouse input:
   applies only on regeneration. Pause and speed changes affect ages in the same
   frame. All five stage sprites match their source pixels at 1x/1.25x/1.5x/2x
   render scale; missing-asset initialization fails cleanly and can be retried.
+- Fire tools: actual SDL clicks respect ImGui capture, a held button does not
+  repeat, Escape exits mode, and paused targets stay unlit until resume. Paused
+  particles preserve positions, ages, colors and counters. Regeneration rejects
+  saved old-world clicks and clears all effects, including while paused.
+- Particle squares: permanent software-surface tests cover exact physical pixel
+  footprints at 1x/1.25x/1.5x/2x and nonuniform density, clipping, blend restoration
+  and read-only drawing. Directed rounding prevents SDL's software quad path from
+  truncating an edge after logical/physical coordinate conversion.
+
+Real-fire captures at 2/6/12/24 seconds were inspected for one cluster and a dense
+mass-fire scene. Temporary SDL checks also verified smoke/sprite/flame/ember order,
+foreground occlusion, residual-emitter depth and standard alpha blending.
 
 Ten-minute forest captures retain clear patches after strengthening habitat
 weighting. Across seeds 74129, 0 and 42, 64–72% of living trees have at least two
@@ -164,9 +205,9 @@ Native minimize/restore also needs desktop checking: the SDL dummy driver used
 for the clock UI smoke check cannot minimize windows. Domain tests cover inactive
 time and the application loop discards minimized/restoration intervals.
 
-## Permanent world tests
+## Permanent regression tests
 
-`ctest --preset debug` runs seven suites:
+`ctest --preset debug` runs thirteen suites:
 
 - `world.hex_grid`: centered axial/storage round trips, bounds, neighbor reciprocity,
   regular geometry and identical shared corners for adjacent hexagons.
@@ -184,10 +225,25 @@ time and the application loop discards minimized/restoration intervals.
 - `world.world_simulation`: initial layout preservation, lifecycle boundaries,
   occupancy and stable IDs, weighted/clustered births, order-independent replay
   and bounded long-running forests.
+- `world.fire_simulation`: fuel stages, queued ignition, staged neighboring spread,
+  combined pressure, burn-down, charred immunity, terrain records and reset.
+- `effects.particle_system`: seeded emission/motion, credits, bounded saturation,
+  sustained 3,000-fire/tiny-pool fairness, independent pool slots, pause/reset,
+  tails and 50x frame replay.
+- `effects.tree_picking`: frontmost opaque pixels, transparent pass-through, all
+  life stages, bounds and logical-to-physical DPI mapping.
+- `world.fire_integration`: shared per-tick world/emitter/effect order, identical
+  gameplay with disabled/tiny/full visuals, paused commands and stale-world rejection.
+- `render.particle_renderer`: real CPU flame squares rendered into an SDL memory
+  surface, with exact DPI/clipped coverage, blend restoration and unchanged state.
+- `render.tree_renderer`: visible burning tint across growing/mature/dead fuel,
+  pause-stable draws, no tint leakage to shared-sprite neighbors and burnout reset.
 
 The tests use throwing checks instead of `assert`, so Release keeps validation
 enabled. See [tests/README.md](../tests/README.md) for fixture format and usage.
-Tests use no graphics driver or window and can be omitted with BUILD_TESTING=OFF.
+Domain/effects tests use no SDL or window. The renderer test uses SDL's software
+memory-surface renderer without a window or display driver. All tests can be omitted
+with BUILD_TESTING=OFF.
 The original four suites passed in Debug and Release. A deliberately altered fixture was
 rejected in Release with its seed/cell location; restoring it made the test pass.
 The clock phase builds with the Ninja debug preset and all six suites pass;
@@ -195,6 +251,14 @@ the existing seed fixtures are unchanged. The living-forest phase builds with th
 same preset and all seven suites pass, including a 1,200-second deterministic
 turnover run and coarse/fine frame replay. Release validation for the new simulation
 work remains part of the foundation's final review.
+The fire phase also passes the Ninja debug build and all thirteen suites, retaining
+the original seed fixtures and PNG image data. Burned-ground recovery is deliberately
+excluded until the next phase.
+
+Synthetic Debug profiling kept the particle pool at or below 4,096 slots. A worst
+clamped 50x frame (400 ticks) took roughly 95/125/444 ms for 500/1,000/6,912 emitters
+on this shared host after caching intensity once per emitter/tick. Ordinary frames
+admit fewer ticks; extreme mass fires can still cause noticeable Debug catch-up.
 
 Earlier UI/rendering checks used one-off harnesses outside the repository. Those
 are still manual/non-permanent coverage; temporary screenshots are not required
@@ -204,8 +268,8 @@ project artifacts and should not be relied on after a session reset.
 
 These are future work, not authorization to start another milestone:
 
-1. Extend permanent regression coverage to renderer pixel/depth ordering and UI
-   regeneration/DPI behavior. World generation and placement tests are in place.
+1. Extend permanent coverage to full-scene depth ordering and UI regeneration/DPI
+   behavior. World, alpha picking and particle pixel regressions are now in place.
 2. Improve names (`IslandDemo`, `storage_origin`, `Tree::offset`), centralize map
    limits and name generation/forest tuning values. Preserve current seeded output.
 3. Consolidate duplicated hash/noise code only with seed-regression protection.

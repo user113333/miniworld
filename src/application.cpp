@@ -61,6 +61,8 @@ bool Application::initialize()
         return false;
     }
     island_.emplace();
+    particles_.reset(island_->map().seed);
+    effects_generation_ = island_->world_generation();
     return true;
 }
 
@@ -94,10 +96,18 @@ int Application::run()
 
 bool Application::process_events()
 {
+    world_clicks_.clear();
     bool running = true;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
+        if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
+            island_->settings.ignite_trees = false;
+            world_clicks_.clear();
+        }
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT) {
+            world_clicks_.push_back({{event.button.x, event.button.y}, island_->world_generation()});
+        }
         if (event.type == SDL_EVENT_QUIT ||
             (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
              event.window.windowID == SDL_GetWindowID(window_))) {
@@ -121,8 +131,10 @@ void Application::draw_frame(double real_seconds)
     const float margin = 16.0f * ImGui::GetStyle().FontScaleDpi;
     const MapView view = fit_map(island_->map(), {margin, margin, io.DisplaySize.x - 2 * margin,
                                                io.DisplaySize.y - 2 * margin});
+    resolve_world_clicks(view, io.WantCaptureMouse,
+                         {io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y});
     // Time measured before regeneration belongs to the old world.
-    island_->advance_simulation(island_->world_generation() == generation_before_ui ? real_seconds : 0.0);
+    advance_simulation(island_->world_generation() == generation_before_ui ? real_seconds : 0.0);
     ui_.draw_origin_hint(view);
 
     ImGui::Render();
@@ -133,8 +145,40 @@ void Application::draw_frame(double real_seconds)
     SDL_RenderClear(renderer_);
     SDL_SetRenderScale(renderer_, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
     draw_map(renderer_, island_->map(), view);
-    trees_.draw(renderer_, island_->map(), view);
+    trees_.draw(renderer_, island_->map(), view, &particles_);
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
     SDL_RenderPresent(renderer_);
+}
+
+void Application::resolve_world_clicks(const MapView& view, bool capture_mouse,
+                                      glm::vec2 framebuffer_scale)
+{
+    if (!capture_mouse && island_->settings.ignite_trees) {
+        for (const WorldClick& click : world_clicks_) {
+            if (click.generation != island_->world_generation()) {
+                continue;
+            }
+            const auto id = trees_.pick(island_->map(), view, framebuffer_scale, click.position);
+            island_->queue_ignition(id, click.generation);
+        }
+    }
+    world_clicks_.clear();
+}
+
+void Application::advance_simulation(double real_seconds)
+{
+    if (effects_generation_ != island_->world_generation()) {
+        particles_.reset(island_->map().seed);
+        fire_emitters_.clear();
+        effects_generation_ = island_->world_generation();
+    }
+    island_->accumulate_simulation_time(real_seconds);
+    while (island_->step_simulation()) {
+        if (island_->clock().world_update_due()) {
+            collect_fire_emitters(island_->map(), fire_emitters_);
+            particles_.set_emitters(fire_emitters_);
+        }
+        particles_.step(island_->clock().ticks());
+    }
 }

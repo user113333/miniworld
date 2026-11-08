@@ -5,8 +5,14 @@
 #include <cstdint>
 #include <vector>
 
-enum class Terrain { water, sand, land, grass };
+enum class Terrain { water, sand, land, grass, burned };
 enum class TreeStage { growing, mature, dead };
+
+struct BurnRecovery {
+    Terrain original_terrain = Terrain::water;
+    std::uint64_t started_tick = 0;
+    std::uint64_t duration_ticks = 0;
+};
 
 struct Tree {
     glm::ivec2 hex;
@@ -19,6 +25,11 @@ struct Tree {
     std::uint64_t lifespan_ticks = 0;
     std::uint64_t decay_ticks = 0;
     std::uint64_t dead_ticks = 0;
+    std::uint64_t ignition_tick = 0;
+    std::uint64_t burnout_tick = 0;
+    bool charred = false;
+
+    bool burning() const { return burnout_tick != 0; }
 };
 
 struct TileMap {
@@ -27,6 +38,7 @@ struct TileMap {
     std::uint32_t seed;
     std::vector<Terrain> tiles;
     std::vector<Tree> trees;
+    std::vector<BurnRecovery> recovery;
 
     // World (0, 0) is the middle storage tile, not the upper-left corner.
     glm::ivec2 storage_origin() const

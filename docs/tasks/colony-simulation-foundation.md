@@ -1,6 +1,6 @@
 # Colony simulation foundation — implementation plan
 
-Status: Phases 1–2 implemented; Phases 3–4 remain planned.
+Status: Phases 1–3 implemented; Phase 4 remains planned.
 Baseline: `master`, lifecycle refactor `98dc328`; world CTest suite `3f0a536`.
 Read `AGENTS.md` and `docs/project-status.md` first in a new session.
 
@@ -297,7 +297,7 @@ check bounded memory, occupancy consistency and absence of abrupt whole-forest r
 - [x] Specify timing, state, input, fire, recovery and test strategy.
 - [x] Phase 1: clock and speed controls.
 - [x] Phase 2: living forests.
-- [ ] Phase 3: fire and manual ignition.
+- [x] Phase 3: fire and manual ignition.
 - [ ] Phase 4: recovery and final validation.
 
 Phase 1 adds `SimulationClock`, per-tick controller advancement, live 0–50x speed,
@@ -348,8 +348,36 @@ Production ImGui clicks confirm initial-density edits leave live state untouched
 in the same frame. Ten-minute captures were inspected for crisp stage sprites,
 depth/overlap and sustained patches. Desktop pacing review remains useful before fire.
 
-Next session: read current status and check git status/Phase 2 approval before
-starting fire. Review living-forest pacing/appearance first. Fire, burned terrain,
-recovery and particles remain unimplemented. Defer workers, jobs, inventory,
+Phase 3 adds stable-ID ignition queues, generation rejection, precise shared
+sprite-layout/alpha picking, the ImGui tool and deterministic start-of-step fire
+spread. Fire takes precedence over ordinary death/decay; burn-down leaves charred
+dead wood and burned terrain with saved recovery records. The companion bounded
+particle pool is integrated on every base tick after that tick's world update.
+Smoke/tree/flame/ember groups share ground depth, including residual tails.
+
+Validation: Ninja debug build and all thirteen CTest suites pass. Added tests cover
+fuel stages, combined neighboring pressure, no same-tick chains, charred immunity,
+occupancy/terrain records, picking/DPI, pool saturation/fairness, pause/reset and
+identical world replay with disabled/tiny/full visual pools. Original fixtures
+and source PNG data remain unchanged.
+
+Permanent SDL memory-surface tests additionally protect exact particle square
+coverage at fractional/nonuniform DPI, clipping, blend restoration and read-only
+drawing. They caught and fixed software-quad edge loss from floating-point scaling.
+Production SDL/ImGui smoke checks passed capture, one press versus held input,
+Escape, paused commands/particles, stale clicks and reset. Cluster/mass-fire captures
+were inspected for staged burn-down and occlusion. Desktop pacing remains a review step.
+
+User-requested burning cue: a steady muted red sprite tint identifies lit trees
+even under particle saturation. Software-surface tests cover all fuel stages,
+unchanged unlit neighbors sharing textures, paused redraws and removal at burnout.
+No sprite assets were edited.
+
+Temporary Phase 3 limitation: recovery records do not advance yet. Burned cells
+remain burned and block births after charred remains decay. Phase 4 must implement
+the weathering/restoration stages and subsequent probabilistic regrowth.
+
+Next session: read current status and check git status/Phase 3 approval before
+starting recovery and final validation. Defer workers, jobs, inventory,
 construction, weather, pathfinding, resource harvesting, save/load and generic
 simulation frameworks.

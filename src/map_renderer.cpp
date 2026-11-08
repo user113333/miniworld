@@ -6,11 +6,12 @@
 
 SDL_FColor terrain_color(Terrain terrain)
 {
-    constexpr std::array<SDL_FColor, 4> colors = {{
+    constexpr std::array<SDL_FColor, 5> colors = {{
         {89 / 255.0f, 113 / 255.0f, 135 / 255.0f, 1},  // Water
         {197 / 255.0f, 173 / 255.0f, 103 / 255.0f, 1}, // Sand
         {168 / 255.0f, 144 / 255.0f, 91 / 255.0f, 1},  // Land
         {147 / 255.0f, 159 / 255.0f, 75 / 255.0f, 1},  // Grass
+        {91 / 255.0f, 78 / 255.0f, 69 / 255.0f, 1},   // Burned
     }};
     return colors[static_cast<int>(terrain)];
 }
