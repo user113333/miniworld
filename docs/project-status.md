@@ -111,6 +111,7 @@ and 50 world updates at 50x. Fractional time and fixed-step replay are preserved
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |
 | `world_simulation.*` | Seeded ecology/fire/recovery, stable IDs and occupancy |
+| `actors/` | Plain game data for objects the player can interact with, starting with `tree.h` |
 | `hex_grid.h`, `tile_map.h` | Axial geometry and centered odd-row storage |
 | `island_generator.*`, `tree_placement.*` | Seeded terrain and forest generation |
 | `map_renderer.*`, `tree_renderer.*` | SDL drawing, map fitting and sprite resources |
