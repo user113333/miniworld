@@ -9,6 +9,6 @@ struct MapView {
     float radius;
 };
 
-SDL_FColor terrain_color(Terrain terrain);
+SDL_FColor terrain_color(Terrain terrain, bool weathered = false);
 MapView fit_map(const TileMap& map, const SDL_FRect& area);
 void draw_map(SDL_Renderer* renderer, const TileMap& map, const MapView& view);

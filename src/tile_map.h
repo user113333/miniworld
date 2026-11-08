@@ -12,6 +12,12 @@ struct BurnRecovery {
     Terrain original_terrain = Terrain::water;
     std::uint64_t started_tick = 0;
     std::uint64_t duration_ticks = 0;
+    std::uint64_t elapsed_ticks = 0;
+
+    bool weathered() const
+    {
+        return duration_ticks != 0 && elapsed_ticks >= duration_ticks / 2;
+    }
 };
 
 struct Tree {

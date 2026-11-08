@@ -1,6 +1,6 @@
 # Colony simulation foundation — implementation plan
 
-Status: Phases 1–3 implemented; Phase 4 remains planned.
+Status: Phases 1–4 implemented, validated and approved. Foundation complete.
 Baseline: `master`, lifecycle refactor `98dc328`; world CTest suite `3f0a536`.
 Read `AGENTS.md` and `docs/project-status.md` first in a new session.
 
@@ -298,7 +298,7 @@ check bounded memory, occupancy consistency and absence of abrupt whole-forest r
 - [x] Phase 1: clock and speed controls.
 - [x] Phase 2: living forests.
 - [x] Phase 3: fire and manual ignition.
-- [ ] Phase 4: recovery and final validation.
+- [x] Phase 4: recovery and final validation.
 
 Phase 1 adds `SimulationClock`, per-tick controller advancement, live 0–50x speed,
 Pause/Resume and elapsed seconds. Generate/Regenerate resets clock state while
@@ -373,11 +373,28 @@ even under particle saturation. Software-surface tests cover all fuel stages,
 unchanged unlit neighbors sharing textures, paused redraws and removal at burnout.
 No sprite assets were edited.
 
-Temporary Phase 3 limitation: recovery records do not advance yet. Burned cells
-remain burned and block births after charred remains decay. Phase 4 must implement
-the weathering/restoration stages and subsequent probabilistic regrowth.
+Phase 4 removes the temporary permanent-scorch limitation. Recovery progresses in
+bounded base ticks on world updates, changes visual stage at its midpoint, restores
+the saved terrain at completion and clears the record. Birth intents see the old
+burned terrain, so restored cells cannot birth until a later update. Recovery is
+independent of corpse removal; occupied cells remain blocked. New scars start at
+zero progress after the current update's existing scars have advanced.
 
-Next session: read current status and check git status/Phase 3 approval before
-starting recovery and final validation. Defer workers, jobs, inventory,
-construction, weather, pathfinding, resource harvesting, save/load and generic
-simulation frameworks.
+New domain and software-surface regressions cover stage boundaries, exact flat
+colors, original terrain, corpse-independent progress, no same-update births,
+eventual regrowth/reburn, pause/reset and coarse/fine replay. Shared world/effects
+replay now spans 400 seconds through recovery with disabled/tiny/full visual pools.
+All fifteen CTest suites and full application builds pass in Debug and Release
+using Ninja presets. Active-scar regeneration and no stale progress/commands are
+covered. Seed fixtures, source PNGs and vendored libraries remain unchanged.
+
+Headless recovery captures at 24/90/150/240/600 seconds were inspected for flat
+weathering stages and later saplings. All 2,574 mass-fire scars restored by 240
+seconds, with 345 regrowth births by then and 991 by 600 seconds. Production-frame
+checks passed 50x weathering, paused timer freeze, resume and complete reset.
+Native monitor/minimize transitions and desktop pacing still need manual review.
+
+Next session: read current status and check git status before planning a new
+milestone. Defer workers, jobs,
+inventory, construction, weather, pathfinding, resource harvesting, save/load and
+generic simulation frameworks.

@@ -108,8 +108,9 @@ void check_fuel_and_burn_down()
         test::expect(map.tiles[cell] == Terrain::burned &&
                      map.recovery[cell].original_terrain == recovery[cell].original_terrain &&
                      map.recovery[cell].started_tick == recovery[cell].started_tick &&
-                     map.recovery[cell].duration_ticks == recovery[cell].duration_ticks,
-                     "A burned cell changed twice or recovered before Phase 4");
+                     map.recovery[cell].duration_ticks == recovery[cell].duration_ticks &&
+                     map.recovery[cell].elapsed_ticks == recovery[cell].elapsed_ticks + 40 * 32,
+                     "Burned terrain changed early or lost recovery progress");
     }
     simulation.reset(map);
     test::expect(map.tiles == original_terrain && simulation.pending_ignitions() == 0,
@@ -203,7 +204,8 @@ void expect_same_world(const TileMap& first, const TileMap& second)
         const BurnRecovery& a = first.recovery[cell];
         const BurnRecovery& b = second.recovery[cell];
         test::expect(a.original_terrain == b.original_terrain && a.started_tick == b.started_tick &&
-                     a.duration_ticks == b.duration_ticks, "Vector order changed recovery records");
+                     a.duration_ticks == b.duration_ticks && a.elapsed_ticks == b.elapsed_ticks,
+                     "Vector order changed recovery records");
     }
 }
 

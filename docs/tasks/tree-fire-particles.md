@@ -269,8 +269,9 @@ embers follow it, with later foreground trees covering complete background group
 The debug build and thirteen CTest suites pass, including visual capacity-independent
 gameplay replay, pool saturation/fairness, pause/reset, source/pool-order replay,
 tick partitioning at 50x and transparent/DPI sprite picking. No image assets or
-vendored files changed. Desktop inspection remains part of review; burned-ground
-recovery is the foundation's next phase.
+vendored files changed. The completed foundation now passes fifteen suites and
+full builds in Debug and Release. Desktop inspection remains part of review;
+recovery restores burned terrain and permits later regrowth.
 
 Permanent SDL memory-surface tests verify exact square coverage at fractional and
 nonuniform DPI, clipped edges, blend restoration and read-only draws. A directed

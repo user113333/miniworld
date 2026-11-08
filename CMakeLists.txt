@@ -80,7 +80,7 @@ endforeach()
 include(CTest)
 if(BUILD_TESTING)
     foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures
-                           simulation_clock island_demo world_simulation fire_simulation)
+                           simulation_clock island_demo world_simulation fire_simulation recovery)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)
@@ -101,6 +101,9 @@ if(BUILD_TESTING)
         src/tree_renderer.cpp src/particle_renderer.cpp)
     target_link_libraries(tree_renderer_tests PRIVATE miniworld_effects SDL3::SDL3)
     add_test(NAME render.tree_renderer COMMAND tree_renderer_tests)
+    add_executable(map_renderer_tests tests/map_renderer_tests.cpp src/map_renderer.cpp)
+    target_link_libraries(map_renderer_tests PRIVATE miniworld_world SDL3::SDL3)
+    add_test(NAME render.map_renderer COMMAND map_renderer_tests)
     target_compile_definitions(seed_fixtures_tests PRIVATE
         TEST_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
     )

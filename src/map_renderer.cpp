@@ -4,8 +4,11 @@
 #include <array>
 #include <vector>
 
-SDL_FColor terrain_color(Terrain terrain)
+SDL_FColor terrain_color(Terrain terrain, bool weathered)
 {
+    if (terrain == Terrain::burned && weathered) {
+        return {138 / 255.0f, 121 / 255.0f, 102 / 255.0f, 1}; // Weathered earth
+    }
     constexpr std::array<SDL_FColor, 5> colors = {{
         {89 / 255.0f, 113 / 255.0f, 135 / 255.0f, 1},  // Water
         {197 / 255.0f, 173 / 255.0f, 103 / 255.0f, 1}, // Sand
@@ -44,7 +47,9 @@ void draw_map(SDL_Renderer* renderer, const TileMap& map, const MapView& view)
     for (int index = 0; index < static_cast<int>(map.tiles.size()); ++index) {
         const glm::ivec2 center = hex_lattice_center(map.hex_at(index));
         const int first = static_cast<int>(vertices.size());
-        const SDL_FColor color = terrain_color(map.tiles[index]);
+        const bool weathered = static_cast<std::size_t>(index) < map.recovery.size()
+                               && map.recovery[index].weathered();
+        const SDL_FColor color = terrain_color(map.tiles[index], weathered);
         for (glm::ivec2 corner : hex_corners) {
             const glm::vec2 point = view.origin + glm::vec2(center + corner) * scale;
             vertices.push_back({{point.x, point.y}, color, {0, 0}});

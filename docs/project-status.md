@@ -8,14 +8,14 @@ The milestone record is [here](tasks/hex-island-generation.md).
 
 Long-term direction: develop this prototype into a colony simulation. The next
 task is tracked in [colony-simulation-foundation.md](tasks/colony-simulation-foundation.md).
-Phases 1–3 (clock, living forests, fire and particle visuals) are implemented.
-Burned-ground recovery remains planned.
+Phases 1–4 (clock, living forests, fire, particle visuals and recovery) are
+implemented, validated and approved. The colony simulation foundation is complete.
 
 1. Implemented: shared fixed-step simulation time, pause and speed controls.
 2. Implemented: gradual tree births, grass-weighted forest growth, aging, death and decay,
    using the supplied `tree_growing.png` and `tree_dead.png`.
 3. Implemented: simulation-time fire spread, click-to-ignite and particle visuals.
-4. Add gradual burned-ground recovery allowing later tree regrowth.
+4. Implemented: gradual burned-ground recovery and later tree regrowth.
 
 The plan covers deterministic updates, occupancy, overlapping-sprite picking,
 initial-density behavior, reset semantics, performance limits and CTest additions.
@@ -70,9 +70,16 @@ capacity. It appears only after ignition, freezes with pause and ends at burnout
 Shared sprite texture modulation is restored after each draw; unlit neighbors and
 the supplied image data remain unchanged.
 
-Next: review Phase 3 before recovery. **Temporary limitation:** burned cells stay
-burned and cannot regrow trees until Phase 4 implements recovery. Saved original
-terrain and bounded recovery durations are already recorded at burn-down.
+Phase 4 advances each scar for its seeded 90–180 simulation seconds. It stays
+charred for the first half, then becomes lighter weathered earth; both stages
+remain canonical burned terrain and block births. Completion restores the saved
+grass/land type and clears the recovery record. Newly restored cells can first
+attempt a probabilistic birth on the following world update. Recovery continues
+after charred wood decays, and an occupied cell still blocks births after recovery.
+
+Recovery shares the existing world clock and pause/speed/reset policy. Rendering
+reads progress without advancing it. No offline progression or new gameplay
+systems were added. Review this completed foundation before the next milestone.
 
 The user-approved speed extension raises the per-frame bound to 400 base ticks
 and 50 world updates at 50x. Fractional time and fixed-step replay are preserved.
@@ -103,7 +110,7 @@ and 50 world updates at 50x. Fractional time and fixed-step replay are preserved
 | `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |
-| `world_simulation.*` | Seeded ecology/fire, stable IDs, occupancy and burn records |
+| `world_simulation.*` | Seeded ecology/fire/recovery, stable IDs and occupancy |
 | `hex_grid.h`, `tile_map.h` | Axial geometry and centered odd-row storage |
 | `island_generator.*`, `tree_placement.*` | Seeded terrain and forest generation |
 | `map_renderer.*`, `tree_renderer.*` | SDL drawing, map fitting and sprite resources |
@@ -160,6 +167,9 @@ These lifecycle smoke checks are not yet part of the permanent world-only suite.
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
 ./cmake-build-debug/miniworld
 ```
 
@@ -187,10 +197,20 @@ checks executed the production frame code with simulated mouse input:
   footprints at 1x/1.25x/1.5x/2x and nonuniform density, clipping, blend restoration
   and read-only drawing. Directed rounding prevents SDL's software quad path from
   truncating an edge after logical/physical coordinate conversion.
+- Recovery: production frames reached weathering at 50x, stayed frozen through
+  five long paused frames, resumed by 400 base ticks and regenerated with no scars,
+  timers or old particles. Repeated redraws never advanced recovery clocks.
 
 Real-fire captures at 2/6/12/24 seconds were inspected for one cluster and a dense
 mass-fire scene. Temporary SDL checks also verified smoke/sprite/flame/ember order,
 foreground occlusion, residual-emitter depth and standard alpha blending.
+
+Recovery captures at 24/90/150/240/600 seconds show flat charred/weathered stages,
+exact restoration and subsequent regrowth. All 39 cluster scars and all 2,574
+mass-fire scars restored by 240 seconds. By 600 seconds, the cluster had 41 birth
+events on former scars and 18 living trees there; the mass scene had 991 birth
+events and 453 living trees on former scars. These are pacing observations,
+not population targets or frozen output fixtures.
 
 Ten-minute forest captures retain clear patches after strengthening habitat
 weighting. Across seeds 74129, 0 and 42, 64–72% of living trees have at least two
@@ -207,7 +227,7 @@ time and the application loop discards minimized/restoration intervals.
 
 ## Permanent regression tests
 
-`ctest --preset debug` runs thirteen suites:
+`ctest --preset debug` and `ctest --preset release` run fifteen suites:
 
 - `world.hex_grid`: centered axial/storage round trips, bounds, neighbor reciprocity,
   regular geometry and identical shared corners for adjacent hexagons.
@@ -227,21 +247,26 @@ time and the application loop discards minimized/restoration intervals.
   and bounded long-running forests.
 - `world.fire_simulation`: fuel stages, queued ignition, staged neighboring spread,
   combined pressure, burn-down, charred immunity, terrain records and reset.
+- `world.recovery`: bounded charred/weathered/restored stages, original terrain,
+  corpse-independent progress, blocked same-update births, regrowth/reburn and reset.
 - `effects.particle_system`: seeded emission/motion, credits, bounded saturation,
   sustained 3,000-fire/tiny-pool fairness, independent pool slots, pause/reset,
   tails and 50x frame replay.
 - `effects.tree_picking`: frontmost opaque pixels, transparent pass-through, all
   life stages, bounds and logical-to-physical DPI mapping.
 - `world.fire_integration`: shared per-tick world/emitter/effect order, identical
-  gameplay with disabled/tiny/full visuals, paused commands and stale-world rejection.
+  400-second fire/recovery replay with disabled/tiny/full visuals, paused commands
+  and stale-world rejection.
 - `render.particle_renderer`: real CPU flame squares rendered into an SDL memory
   surface, with exact DPI/clipped coverage, blend restoration and unchanged state.
 - `render.tree_renderer`: visible burning tint across growing/mature/dead fuel,
   pause-stable draws, no tint leakage to shared-sprite neighbors and burnout reset.
+- `render.map_renderer`: exact solid colors for charred/weathered/restored cells,
+  unchanged original palette/origin and read-only recovery drawing.
 
 The tests use throwing checks instead of `assert`, so Release keeps validation
 enabled. See [tests/README.md](../tests/README.md) for fixture format and usage.
-Domain/effects tests use no SDL or window. The renderer test uses SDL's software
+Domain/effects tests use no SDL or window. Renderer tests use SDL's software
 memory-surface renderer without a window or display driver. All tests can be omitted
 with BUILD_TESTING=OFF.
 The original four suites passed in Debug and Release. A deliberately altered fixture was
@@ -249,11 +274,13 @@ rejected in Release with its seed/cell location; restoring it made the test pass
 The clock phase builds with the Ninja debug preset and all six suites pass;
 the existing seed fixtures are unchanged. The living-forest phase builds with the
 same preset and all seven suites pass, including a 1,200-second deterministic
-turnover run and coarse/fine frame replay. Release validation for the new simulation
-work remains part of the foundation's final review.
+turnover run and coarse/fine frame replay.
 The fire phase also passes the Ninja debug build and all thirteen suites, retaining
-the original seed fixtures and PNG image data. Burned-ground recovery is deliberately
-excluded until the next phase.
+the original seed fixtures and PNG image data. The completed recovery phase passes
+all fifteen suites in Debug and Release, including fire-to-regrowth replay and
+active-scar reset. Both full Ninja application builds pass using their presets.
+Existing seed fixtures, source PNGs and vendored libraries are unchanged. Native
+monitor/minimize transitions and desktop pacing remain manual review items.
 
 Synthetic Debug profiling kept the particle pool at or below 4,096 slots. A worst
 clamped 50x frame (400 ticks) took roughly 95/125/444 ms for 500/1,000/6,912 emitters

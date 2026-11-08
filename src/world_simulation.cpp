@@ -227,6 +227,22 @@ void WorldSimulation::burn_down(TileMap& map, Tree& tree, std::uint64_t tick) co
     }
 }
 
+void WorldSimulation::advance_recovery(TileMap& map) const
+{
+    for (std::size_t cell = 0; cell < map.recovery.size(); ++cell) {
+        BurnRecovery& recovery = map.recovery[cell];
+        if (recovery.duration_ticks == 0) {
+            continue;
+        }
+        recovery.elapsed_ticks = std::min(recovery.duration_ticks,
+                                         recovery.elapsed_ticks + world_ticks);
+        if (recovery.elapsed_ticks == recovery.duration_ticks) {
+            map.tiles[cell] = recovery.original_terrain;
+            recovery = {};
+        }
+    }
+}
+
 void WorldSimulation::update(TileMap& map, std::uint64_t tick)
 {
     if (tick != last_tick_ + world_ticks) {
@@ -255,6 +271,10 @@ void WorldSimulation::update(TileMap& map, std::uint64_t tick)
             births_.push_back(cell);
         }
     }
+
+    // Births saw each cell's old terrain above. Restore existing scars before
+    // lifecycle updates create fresh ones, which must start at zero progress.
+    advance_recovery(map);
 
     for (int cell : ignitions_) {
         ignite(map.trees[occupancy_[cell]], map.seed, tick);

@@ -12,7 +12,8 @@ void expect_same_world(const TileMap& actual, const TileMap& expected)
         const auto& a = actual.recovery[i];
         const auto& b = expected.recovery[i];
         test::expect(a.original_terrain == b.original_terrain && a.started_tick == b.started_tick &&
-                     a.duration_ticks == b.duration_ticks, "Effects changed burned ground");
+                     a.duration_ticks == b.duration_ticks && a.elapsed_ticks == b.elapsed_ticks,
+                     "Effects changed burned ground");
     }
     const auto actual_trees = test::trees_by_cell(actual);
     const auto expected_trees = test::trees_by_cell(expected);
@@ -45,6 +46,8 @@ TileMap replay(std::size_t capacity, int frames, double frame_seconds)
     const auto generation = island.world_generation();
     const auto first_id = island.map().trees.front().id;
     const auto second_id = island.map().trees.back().id;
+    std::vector<bool> scorched(island.map().tiles.size(), false);
+    bool restored = false;
     test::expect(island.queue_ignition(first_id, generation), "Could not queue replay fire");
     for (int frame = 0; frame < frames; ++frame) {
         island.accumulate_simulation_time(frame_seconds);
@@ -53,18 +56,21 @@ TileMap replay(std::size_t capacity, int frames, double frame_seconds)
                 island.queue_ignition(second_id, generation);
             }
             if (island.clock().world_update_due()) {
+                for (std::size_t cell = 0; cell < scorched.size(); ++cell) {
+                    if (island.map().tiles[cell] == Terrain::burned) {
+                        scorched[cell] = true;
+                    } else if (scorched[cell]) {
+                        restored = true;
+                    }
+                }
                 collect_fire_emitters(island.map(), emitters);
                 effects.set_emitters(emitters);
             }
             effects.step(island.clock().ticks());
         }
     }
-    test::expect(island.clock().elapsed_seconds() == 100.0, "Replay consumed the wrong shared time");
-    bool burned = false;
-    for (Terrain terrain : island.map().tiles) {
-        burned |= terrain == Terrain::burned;
-    }
-    test::expect(burned, "Replay never exercised fire death");
+    test::expect(island.clock().elapsed_seconds() == 400.0, "Replay consumed the wrong shared time");
+    test::expect(restored, "Replay never exercised fire death and recovery");
     if (capacity > 0) {
         test::expect(effects.spawned_count() > 0, "Real fire did not produce visual particles");
     }
@@ -101,9 +107,9 @@ void check_paused_commands_and_reset()
 int main()
 {
     return test::run("Shared fire and visual integration", [] {
-        const TileMap disabled = replay(0, 8, 0.25);
-        expect_same_world(replay(1, 128, 1.0 / 64.0), disabled);
-        expect_same_world(replay(ParticleSystem::max_particles, 8, 0.25), disabled);
+        const TileMap disabled = replay(0, 32, 0.25);
+        expect_same_world(replay(1, 512, 1.0 / 64.0), disabled);
+        expect_same_world(replay(ParticleSystem::max_particles, 32, 0.25), disabled);
         check_paused_commands_and_reset();
     });
 }

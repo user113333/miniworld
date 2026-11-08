@@ -11,12 +11,25 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "BUILD_TESTING": true
       }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (Ninja)",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/cmake-build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "debug",
       "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
     }
   ],
   "testPresets": [
@@ -29,6 +42,11 @@
       "execution": {
         "noTestsAction": "error"
       }
+    },
+    {
+      "name": "release",
+      "inherits": "debug",
+      "configurePreset": "release"
     }
   ]
 }

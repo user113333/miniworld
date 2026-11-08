@@ -6,13 +6,14 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The thirteen suites cover hex geometry/storage, island invariants, forest placement,
+The fifteen suites cover hex geometry/storage, island invariants, forest placement,
 fixed-seed snapshots, simulation clock accounting and controller pause/reset
-behavior, living forests, fire, CPU particles, sprite picking and shared replay.
+behavior, living forests, fire/recovery, CPU particles, sprite picking and shared replay.
 Checks stay active in Release. Domain/effects tests need no SDL or display. The
-particle renderer suite draws to an SDL memory surface without a window or display
+renderer suites draw to SDL memory surfaces without a window or display
 driver. No new test library is required.
 Use `-DBUILD_TESTING=OFF` when configuring to omit the test executables.
+The `release` configure/build/test presets run the same checks with optimization.
 
 ## Seed snapshots
 

@@ -53,6 +53,7 @@ private:
     void collect_ignitions(const TileMap& map, std::uint64_t tick);
     void ignite(Tree& tree, std::uint32_t seed, std::uint64_t tick) const;
     void burn_down(TileMap& map, Tree& tree, std::uint64_t tick) const;
+    void advance_recovery(TileMap& map) const;
 
     std::vector<int> occupancy_;
     std::vector<int> births_;
