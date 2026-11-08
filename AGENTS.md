@@ -2,6 +2,7 @@
 - Work on small tasks
 - Make code readable.
 - Split code into files when it improves readability.
+- Keep README.md short and easy for humans to read. Include only essential information.
 
 # Git Commit
 - Before committing, summarize the changes and validation, then wait for my approval.
