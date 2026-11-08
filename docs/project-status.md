@@ -6,8 +6,8 @@ Flecs is now the authoritative actor store and executes ordered simulation syste
 Implementation, review and Debug/Release validation are complete and user-approved.
 
 The colony simulation foundation is also complete and approved.
-Colonists, houses, jobs, pathfinding, construction and
-save/load remain later milestones.
+Settlers, houses, jobs, pathfinding, construction and ships are planned below.
+Save/load remains a later milestone.
 
 ## Architecture
 
@@ -95,6 +95,16 @@ A headless production-frame smoke check passes window close/reopen, pause/resume
 exclusive tools, captured world clicks, actor selection, paused ignition, 50x fire
 particles and regeneration clearing handles/tools/time/effects. Normal shutdown
 and missing-font/sprite failures release ImGui and SDL correctly.
+
+## Deferred tasks
+
+- [Simplify tree lifecycle](tasks/simplify-tree-lifecycle.md): remove growing/dead
+  stages, natural death and natural growth/regrowth. Trees start fully grown and
+  can die only from fire until settler harvesting is added; planting remains a
+  later milestone.
+- [Settlers, construction and sailing](tasks/settlers.md): draft plan for autonomous
+  settlers, inventories, tree cutting, houses/fire, mountains, continuous movement
+  and ships. Food rules are open; hunger, health and multiple islands are deferred.
 
 ## Deferred review
 
