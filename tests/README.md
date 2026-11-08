@@ -6,10 +6,11 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The six suites cover hex geometry/storage, island invariants, forest placement,
+The seven suites cover hex geometry/storage, island invariants, forest placement,
 fixed-seed snapshots, simulation clock accounting and controller pause/reset
-behavior. Checks stay active in Release. Tests link only the
-world logic and GLM; they need no display, SDL initialization, or new test library.
+behavior, and living-forest lifecycle, occupancy and seeded replay. Checks stay
+active in Release. Tests link only the world logic and GLM; they need no display,
+SDL initialization, or new test library.
 Use `-DBUILD_TESTING=OFF` when configuring to omit the test executables.
 
 ## Seed snapshots

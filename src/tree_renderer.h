@@ -20,5 +20,5 @@ private:
         SDL_Texture* texture = nullptr;
         glm::ivec2 size{};
     };
-    std::array<Sprite, 3> sprites_{};
+    std::array<Sprite, 5> sprites_{};
 };

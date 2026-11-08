@@ -57,9 +57,9 @@ Between world boundaries, reuse the emitter views and derive continuous burn
 progress from their simulation start/end ticks. Never advance all world steps
 first and then apply the final fire snapshot to the entire elapsed interval.
 
-- Keep the foundation's 0–8x speed, pause, reset and minimized/stall policies.
-- A maximum admitted real delta of 0.25 seconds at 8x produces at most **64 base
-  steps and 8 world updates per frame**. Normal fractional time stays accumulated.
+- Keep the foundation's 0–50x speed, pause, reset and minimized/stall policies.
+- A maximum admitted real delta of 0.25 seconds at 50x produces at most **400 base
+  steps and 50 world updates per frame**. Normal fractional time stays accumulated.
 - No SDL_GetTicks, ImGui DeltaTime, wall-clock randomness or second effects clock
   inside particle code. Do not multiply by speed again after consuming sim steps.
 - Pause runs zero base steps: pool contents, color, emission credit, random
@@ -122,7 +122,7 @@ linked lists, per-tree particle pools or frame-driven resizing.
 
 - Iterate safely after swap removal so the swapped particle is not skipped.
 - Update costs are O(active particles + emitters) per base tick. Maximum catch-up
-  work is bounded by 64 steps; no all-pairs particle/tree checks.
+  work is bounded by 400 steps; no all-pairs particle/tree checks.
 - At capacity, drop cosmetic spawn requests instead of allocating or delaying
   gameplay. Do not kill arbitrary living particles to make room.
 - Serve flame requests before smoke/embers, and rotate the starting emitter in
@@ -231,7 +231,7 @@ Add permanent CTest coverage, retaining all world snapshots unchanged:
 - Intensity builds, sustains and fades; zero intensity produces no emission. Credits
   behave for fractional rates and full pools, without deferred catch-up bursts.
 - Pause freezes positions/age/color/credits/counters; speed scales all effects with
-  the shared clock. A clamped 8x frame never exceeds 64 particle steps.
+  the shared clock. A clamped 50x frame never exceeds 400 particle steps.
 - Emitter disappearance stops births, allows bounded tails, and leaves no stale
   pointers. World reset clears everything, including credits and orphan emitters.
 - Capacity/fairness are deterministic and bounded. World simulation replay is

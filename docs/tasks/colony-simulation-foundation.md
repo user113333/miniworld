@@ -1,6 +1,6 @@
 # Colony simulation foundation — implementation plan
 
-Status: Phase 1 implemented; Phases 2–4 remain planned.
+Status: Phases 1–2 implemented; Phases 3–4 remain planned.
 Baseline: `master`, lifecycle refactor `98dc328`; world CTest suite `3f0a536`.
 Read `AGENTS.md` and `docs/project-status.md` first in a new session.
 
@@ -64,12 +64,12 @@ Expose elapsed simulation seconds for the UI. Future colony systems can consume
 these same steps without knowing SDL or render FPS. A cadence check is enough;
 do not introduce a calendar, generic event bus or subsystem scheduler.
 
-`Application` measures real elapsed time using a monotonic clock. Apply a 0–8x
+`Application` measures real elapsed time using a monotonic clock. Apply a 0–50x
 speed multiplier, default 1x. Zero means pause; offer a nearby explicit Pause/Resume
 control or clear 0x label. Slider changes take effect before that frame's advance.
 
-- Clamp real frame deltas to 250 ms; with 8x speed, at most 64 base ticks and
-  eight world updates are due per frame. Discard excess stall time rather than
+- Clamp real frame deltas to 250 ms; with 50x speed, at most 400 base ticks and
+  50 world updates are due per frame. Discard excess stall time rather than
   creating a catch-up spiral.
 - Ignore negative/non-finite elapsed input and validate the speed range at the
   clock boundary, not only in ImGui.
@@ -156,7 +156,8 @@ Provisional demo tuning, centralized and expressed in simulation units:
 | Sapling growth | Seeded 15–30 s |
 | Total age at natural death | Seeded 180–360 s |
 | Natural dead-tree decay | Seeded 30–60 s |
-| Base birth rate per empty grass/land cell | 0.002 / 0.0005 per second, multiplied by forest suitability |
+| Base birth rate per empty grass/land cell | 0.002 / 0.0005 per second, before habitat weighting |
+| Habitat weighting (reviewed in Phase 2) | `16 * suitability^3`, where suitability is `(1 - forest_noise)^2` |
 | Burn duration | Seeded 12–20 s; dead wood can use a shorter duration |
 | Spread rate per adjacent susceptible pair | 0.15 per second |
 | Charred remains decay | Seeded 15–30 s |
@@ -271,7 +272,7 @@ or initialization separately. Live-state replay checks are new tests, not replac
 Add permanent, headless CTest coverage using current throwing checks:
 
 - Clock: pause/resume, speed ratios, equal-total frame partitions, tick boundaries,
-  32 Hz/4 Hz cadence, bounded stall handling (64 base ticks/eight world updates),
+  32 Hz/4 Hz cadence, bounded stall handling (400 base ticks/50 world updates),
   reset, and no minimized/offline catch-up.
 - Lifecycle: staged growth, staggered initial ages, natural death/decay, zero/full
   occupancy, birth exclusion on sand/water/burned/occupied cells, grass weighting,
@@ -295,11 +296,11 @@ check bounded memory, occupancy consistency and absence of abrupt whole-forest r
 - [x] Inspect architecture, tests and supplied sprite canvases.
 - [x] Specify timing, state, input, fire, recovery and test strategy.
 - [x] Phase 1: clock and speed controls.
-- [ ] Phase 2: living forests.
+- [x] Phase 2: living forests.
 - [ ] Phase 3: fire and manual ignition.
 - [ ] Phase 4: recovery and final validation.
 
-Phase 1 adds `SimulationClock`, per-tick controller advancement, live 0–8x speed,
+Phase 1 adds `SimulationClock`, per-tick controller advancement, live 0–50x speed,
 Pause/Resume and elapsed seconds. Generate/Regenerate resets clock state while
 retaining speed; a world-generation counter prevents pre-reset frame time from
 advancing a new world. Minimized time, including the final inactive interval on
@@ -318,8 +319,37 @@ their timing changes in the same frame. Reset discards an old 10-second delta,
 retains speed and advances normally on the next frame. Native minimize/restore
 still needs desktop checking; SDL's dummy video driver does not support it.
 
-Next session: read current status and check git status/Phase 1 approval before
-starting Phase 2. Its density slider semantics and supplied growing/dead sprites
-remain for that phase. Review pacing/appearance before starting fire. Defer workers,
-jobs, inventory, construction, weather, pathfinding, resource harvesting, save/load
-and generic simulation frameworks.
+Phase 2 adds lifecycle metadata, stable IDs allocated in cell order, an occupancy
+index and deterministic keyed birth/lifecycle samples independent of initial map
+generation. Initial mature layouts and appearance are preserved. Newborns use the
+supplied sapling sprite, grow into a stable mature variant and eventually leave
+the supplied dead-tree sprite before decay releases occupancy. Grass births use
+four times the base land rate, both weighted by the existing coherent forest
+noise. Birth intents use start-of-step occupancy; removals cannot produce a birth
+in the same update. The density slider now applies only to initial generation.
+
+Phase 2 validation: Ninja debug configure/build and all seven CTest suites pass.
+The new suite covers lifecycle boundaries, start-of-step occupancy, grass/habitat
+weighting, reversed-vector replay, 1,200-second turnover and frame-partition replay.
+Controller checks cover live advancement, paused state, complete reset and initial
+density edits. Existing seed fixtures and source PNGs are unchanged.
+
+Pacing review strengthened habitat weighting so long-running forests retain
+coherent patches instead of becoming sparse scattering. For seed 74129 at default
+size/density, population at 0/120/300/600 seconds is 101/108/55/80; each quarter-second
+update changed at most two births, deaths or removals. At 600 seconds, 64–72% of
+living trees have at least two living neighbors across three reference seeds.
+The long-run regression includes a broad guard for persistent living patches.
+
+Headless SDL checks compare all five sprites against source pixels at
+1x/1.25x/1.5x/2x render scale and verify missing-asset cleanup/reinitialization.
+Production ImGui clicks confirm initial-density edits leave live state untouched,
+0%/100% applies on regeneration, and pause/speed controls freeze or advance ages
+in the same frame. Ten-minute captures were inspected for crisp stage sprites,
+depth/overlap and sustained patches. Desktop pacing review remains useful before fire.
+
+Next session: read current status and check git status/Phase 2 approval before
+starting fire. Review living-forest pacing/appearance first. Fire, burned terrain,
+recovery and particles remain unimplemented. Defer workers, jobs, inventory,
+construction, weather, pathfinding, resource harvesting, save/load and generic
+simulation frameworks.

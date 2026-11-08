@@ -19,7 +19,9 @@ bool SimulationClock::step()
 {
     // Decimal frame partitions can sum just below an exact tick boundary.
     // Keep extra precision and forgive only double-input rounding at that boundary.
-    constexpr long double boundary_tolerance = 16.0L * std::numeric_limits<double>::epsilon();
+    constexpr long double max_frame_ticks = max_frame_seconds * max_speed / base_step_seconds;
+    constexpr long double boundary_tolerance = 16.0L * max_frame_ticks
+                                               * std::numeric_limits<double>::epsilon();
     if (accumulated_ticks_ + boundary_tolerance < 1.0L) {
         return false;
     }

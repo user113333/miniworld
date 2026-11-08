@@ -2,6 +2,7 @@
 
 #include "tile_map.h"
 #include "simulation_clock.h"
+#include "world_simulation.h"
 
 #include <random>
 
@@ -18,7 +19,6 @@ public:
     IslandDemo();
     void generate();
     void regenerate();
-    void update_trees();
     void advance_simulation(double real_seconds, bool active = true);
     void toggle_pause();
     const TileMap& map() const { return map_; }
@@ -31,6 +31,7 @@ private:
     std::mt19937 random_{std::random_device{}()};
     TileMap map_;
     SimulationClock clock_;
+    WorldSimulation simulation_;
     std::uint64_t world_generation_ = 0;
     float resume_speed_ = 1.0f;
 };

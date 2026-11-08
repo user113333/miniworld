@@ -5,6 +5,25 @@
 #include <string>
 #include <vector>
 
+namespace {
+constexpr std::array<const char*, 5> sprite_names{
+    "tree1.png", "tree2.png", "tree3.png", "tree_growing.png", "tree_dead.png"
+};
+
+std::size_t sprite_index(const Tree& tree)
+{
+    switch (tree.stage) {
+    case TreeStage::growing:
+        return 3;
+    case TreeStage::mature:
+        return tree.variant < 3 ? tree.variant : sprite_names.size();
+    case TreeStage::dead:
+        return 4;
+    }
+    return sprite_names.size();
+}
+} // namespace
+
 TreeRenderer::~TreeRenderer()
 {
     shutdown();
@@ -19,7 +38,7 @@ bool TreeRenderer::initialize(SDL_Renderer* renderer)
         return false;
     }
     for (std::size_t index = 0; index < sprites_.size(); ++index) {
-        const std::string path = std::string(base_path) + "res/map/tree" + std::to_string(index + 1) + ".png";
+        const std::string path = std::string(base_path) + "res/map/" + sprite_names[index];
         SDL_Surface* image = SDL_LoadPNG(path.c_str());
         if (!image) {
             SDL_Log("Cannot load %s: %s", path.c_str(), SDL_GetError());
@@ -71,10 +90,11 @@ void TreeRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const MapVie
     const float tile_width = glm::sqrt(3.0f) * view.radius;
     for (const PositionedTree& positioned : ordered) {
         const Tree* tree = positioned.tree;
-        if (tree->variant >= sprites_.size()) {
+        const std::size_t index = sprite_index(*tree);
+        if (index >= sprites_.size()) {
             continue;
         }
-        const Sprite& sprite = sprites_[tree->variant];
+        const Sprite& sprite = sprites_[index];
         if (!sprite.texture) {
             continue;
         }

@@ -44,7 +44,7 @@ void check_boundaries_and_cadence()
 
 void check_speed_and_pause()
 {
-    for (double speed : {0.0, 0.5, 1.0, 2.0, 4.0, 8.0}) {
+    for (double speed : {0.0, 0.5, 1.0, 2.0, 4.0, 8.0, 25.0, 50.0}) {
         SimulationClock clock;
         const StepCounts counts = advance(clock, 0.25, speed);
         test::expect(counts.base == static_cast<int>(8 * speed), "Speed ratio changed");
@@ -62,7 +62,7 @@ void check_speed_and_pause()
 
 void check_frame_partitions()
 {
-    for (double speed : {0.5, 1.0, 3.0, 8.0}) {
+    for (double speed : {0.5, 1.0, 3.0, 8.0, 25.0, 50.0}) {
         for (int frames : {4, 10, 60, 144, 1000}) {
             SimulationClock clock;
             int world_steps = 0;
@@ -87,8 +87,8 @@ void check_stalls_and_inactivity()
     SimulationClock clock;
     // Retaining an ordinary fractional tick must not exceed the frame work bound.
     advance(clock, SimulationClock::base_step_seconds / 2);
-    const StepCounts stall = advance(clock, 60.0, 8.0);
-    test::expect(stall.base == 64 && stall.world == 8, "Stall exceeded the fixed work bound");
+    const StepCounts stall = advance(clock, 60.0, 50.0);
+    test::expect(stall.base == 400 && stall.world == 50, "Stall exceeded the fixed work bound");
     test::expect(advance(clock, 0.0).base == 0, "Discarded stall time became a backlog");
     test::expect(advance(clock, SimulationClock::base_step_seconds / 2).base == 1,
                  "Stall handling lost the ordinary fractional remainder");
@@ -96,7 +96,7 @@ void check_stalls_and_inactivity()
     SimulationClock inactive;
     advance(inactive, SimulationClock::base_step_seconds / 2);
     for (int frame = 0; frame < 10; ++frame) {
-        test::expect(advance(inactive, 60.0, 8.0, false).base == 0,
+        test::expect(advance(inactive, 60.0, 50.0, false).base == 0,
                      "Inactive frame advanced simulation time");
     }
     test::expect(advance(inactive, SimulationClock::base_step_seconds / 2).base == 1,
@@ -118,9 +118,9 @@ void check_invalid_input_and_reset()
     }
     test::expect(advance(clock, SimulationClock::base_step_seconds / 2).base == 1,
                  "Invalid inputs damaged the fractional accumulator");
-    test::expect(advance(clock, 0.25, 100.0).base == 64, "Excess speed was not clamped to 8x");
+    test::expect(advance(clock, 0.25, 100.0).base == 400, "Excess speed was not clamped to 50x");
 
-    clock.accumulate(0.25, 8.0);
+    clock.accumulate(0.25, 50.0);
     clock.reset();
     test::expect(clock.ticks() == 0 && clock.elapsed_seconds() == 0.0 && !clock.world_update_due(),
                  "Reset retained completed simulation time");

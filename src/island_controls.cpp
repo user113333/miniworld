@@ -24,11 +24,16 @@ void draw_island_controls(IslandDemo& island, bool& open)
         settings.width = std::clamp(settings.width, 12, 96);
         settings.height = std::clamp(settings.height, 12, 72);
         float density_percent = settings.tree_density * 100.0f;
-        if (ImGui::SliderFloat("Tree density", &density_percent, 0.0f, 100.0f, "%.0f%%")) {
+        if (ImGui::SliderFloat("Initial tree density", &density_percent, 0.0f, 100.0f, "%.0f%%")) {
             settings.tree_density = density_percent / 100.0f;
-            island.update_trees();
         }
         ImGui::Text("Trees: %zu", island.map().trees.size());
+        const auto growing = std::count_if(island.map().trees.begin(), island.map().trees.end(),
+            [](const Tree& tree) { return tree.stage == TreeStage::growing; });
+        const auto dead = std::count_if(island.map().trees.begin(), island.map().trees.end(),
+            [](const Tree& tree) { return tree.stage == TreeStage::dead; });
+        ImGui::Text("Saplings: %zu  Dead: %zu", static_cast<std::size_t>(growing),
+                    static_cast<std::size_t>(dead));
         if (ImGui::Button("Generate")) {
             island.generate();
         }
@@ -36,11 +41,14 @@ void draw_island_controls(IslandDemo& island, bool& open)
         if (ImGui::Button("Regenerate")) {
             island.regenerate();
         }
-        ImGui::TextUnformatted("Edit seed, then Regenerate.");
+        ImGui::TextUnformatted("Seed, size and density apply on generation.");
         ImGui::Separator();
-        ImGui::SliderFloat("Speed", &settings.simulation_speed, 0.0f,
-                           static_cast<float>(SimulationClock::max_speed), "%.2fx",
-                           ImGuiSliderFlags_AlwaysClamp);
+        int speed = static_cast<int>(settings.simulation_speed);
+        if (ImGui::SliderInt("Speed", &speed, 0,
+                             static_cast<int>(SimulationClock::max_speed), "%dx",
+                             ImGuiSliderFlags_AlwaysClamp)) {
+            settings.simulation_speed = static_cast<float>(speed);
+        }
         if (ImGui::Button(settings.simulation_speed > 0.0f ? "Pause" : "Resume")) {
             island.toggle_pause();
         }

@@ -28,6 +28,12 @@ float forest_noise(glm::vec2 position, std::uint32_t seed)
 }
 } // namespace
 
+float forest_suitability(glm::ivec2 hex, std::uint32_t seed)
+{
+    const float suitability = 1.0f - forest_noise(hex_center(hex) / 9.0f, seed);
+    return suitability * suitability;
+}
+
 void place_trees(TileMap& map, float density)
 {
     map.trees.clear();

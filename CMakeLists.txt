@@ -30,6 +30,7 @@ add_library(miniworld_world STATIC
     src/island_generator.cpp
     src/tree_placement.cpp
     src/simulation_clock.cpp
+    src/world_simulation.cpp
     src/island_demo.cpp
 )
 target_include_directories(miniworld_world PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -58,7 +59,7 @@ configure_file(
     COPYONLY
 )
 
-foreach(tree IN ITEMS tree1 tree2 tree3)
+foreach(tree IN ITEMS tree1 tree2 tree3 tree_growing tree_dead)
     configure_file(
         ${PROJECT_SOURCE_DIR}/res/map/${tree}.png
         ${CMAKE_CURRENT_BINARY_DIR}/res/map/${tree}.png
@@ -68,7 +69,8 @@ endforeach()
 
 include(CTest)
 if(BUILD_TESTING)
-    foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures simulation_clock island_demo)
+    foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures
+                           simulation_clock island_demo world_simulation)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)

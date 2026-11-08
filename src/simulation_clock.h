@@ -6,7 +6,7 @@ class SimulationClock {
 public:
     static constexpr double base_step_seconds = 1.0 / 32.0;
     static constexpr std::uint64_t ticks_per_world_step = 8;
-    static constexpr double max_speed = 8.0;
+    static constexpr double max_speed = 50.0;
     static constexpr double max_frame_seconds = 0.25;
 
     // Admit one frame, then drain step() before admitting another frame.

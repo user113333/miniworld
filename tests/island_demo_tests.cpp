@@ -56,20 +56,28 @@ void check_pause_and_inactivity()
     test::expect(island.clock().ticks() == 1, "Inactivity lost the existing fraction or caught up");
 }
 
-void check_static_world()
+void check_live_world_and_initial_density()
 {
     IslandDemo island;
+    island.settings.seed = 74129;
+    island.regenerate();
     const TileMap original = island.map();
+    const auto generation = island.world_generation();
+    island.settings.tree_density = 0.0f;
+    test::expect(island.map().trees.size() == original.trees.size(),
+                 "Editing initial density reset the current forest");
     island.settings.simulation_speed = 8.0f;
-    for (int frame = 0; frame < 100; ++frame) {
-        island.advance_simulation(0.25);
-    }
-    test::expect(island.clock().elapsed_seconds() == 200.0, "Simulation elapsed display is incorrect");
-    test::expect(island.map().tiles == original.tiles, "Clock changed terrain");
-    test::expect(island.map().trees.size() == original.trees.size(), "Clock changed tree count");
-    for (std::size_t i = 0; i < original.trees.size(); ++i) {
-        test::expect_same_tree(island.map().trees[i], original.trees[i]);
-    }
+    island.advance_simulation(0.25);
+    test::expect(island.clock().elapsed_seconds() == 2.0, "Simulation elapsed display is incorrect");
+    const Tree& tree = island.map().trees.front();
+    test::expect(tree.id == original.trees.front().id &&
+                 tree.age_ticks == original.trees.front().age_ticks + 64,
+                 "Controller did not drive living trees at world cadence");
+    test::expect(island.world_generation() == generation, "Simulation replaced the whole forest");
+    test::expect(island.map().tiles == original.tiles, "Natural forest advancement changed terrain");
+    island.regenerate();
+    test::expect(island.map().trees.empty() && island.clock().ticks() == 0,
+                 "Regenerate did not apply the edited initial density");
 }
 
 } // namespace
@@ -79,6 +87,6 @@ int main()
     return test::run("Island simulation controller", [] {
         check_reset();
         check_pause_and_inactivity();
-        check_static_world();
+        check_live_world_and_initial_density();
     });
 }
