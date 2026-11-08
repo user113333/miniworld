@@ -13,7 +13,7 @@ int main(int, char**)
 
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
-    if (!SDL_CreateWindowAndRenderer("Miniworld", 800, 600,
+    if (!SDL_CreateWindowAndRenderer("Miniworld", 1920, 1080,
                                     SDL_WINDOW_RESIZABLE, &window, &renderer)) {
         SDL_Log("Window creation failed: %s", SDL_GetError());
         SDL_Quit();
@@ -41,6 +41,7 @@ int main(int, char**)
     }
 
     bool running = true;
+    bool show_demo_window = false;
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -63,12 +64,23 @@ int main(int, char**)
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Welcome", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-        ImGui::TextUnformatted("Hello, world!");
-        if (ImGui::Button("Quit")) {
-            running = false;
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Quit")) {
+                    running = false;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("View")) {
+                ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window);
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
         }
-        ImGui::End();
+
+        if (show_demo_window) {
+            ImGui::ShowDemoWindow(&show_demo_window);
+        }
 
         ImGui::Render();
         const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;

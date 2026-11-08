@@ -1,6 +1,7 @@
 set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/lib/imgui")
 add_library(imgui STATIC
     ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
