@@ -39,13 +39,19 @@ fill requirements override the rejected flattened sprite design.
 ## Implementation
 
 - `hex_grid.h`: axial neighbors, centers, and regular hex corner lattice; GLM math.
-- `tile_map.h`: terrain/seed/dimensions, rectangular odd-row storage with axial access.
-- `island_generator.*`: seeded smooth value noise, radial falloff, largest connected
-  land component, coastal sand, coherent interior grass/land patches.
-- `map_renderer.*`: SDL geometry only; no generation or UI dependencies.
-- `island_demo.*`: initial random seed, map state, Generate/Regenerate controls,
-  editable seed and dimensions. Generate picks a new seed; Regenerate uses the
-  entered seed. Width 12–96, height 12–72; default 48x32.
+- `tile_map.h`: terrain/seed/dimensions, rectangular odd-row storage with axial
+  access centered on the middle tile. World coordinates extend negatively and
+  positively around `(0, 0)`; storage indices remain nonnegative.
+- `island_generator.*`: seeded smooth value noise, radial falloff centered on
+  `(0, 0)`, connected land component containing the origin, coastal sand,
+  coherent interior grass/land patches.
+- `map_renderer.*`: SDL geometry, shared terrain colors and map-view fitting;
+  no generation or UI dependencies.
+- `island_demo.*`: game state, settings and Generate/Regenerate actions only.
+- `island_controls.*`: ImGui seed and dimension controls. Generate picks a new
+  seed; Regenerate uses the entered seed. Width 12–96, height 12–72;
+  default 48x32. ApplicationUi owns visibility via View > Island and the
+  window's close button.
 - `main.cpp`: draws the world before ImGui. Map framebuffer scale is applied once;
   ImGui's renderer handles its own framebuffer scaling.
 - Root CMake uses the existing header-only GLM target. No CMake file in `src/`.
@@ -54,8 +60,8 @@ fill requirements override the rejected flattened sprite design.
 
 | Milestone | Scope | State |
 | --- | --- | --- |
-| 1 | Procedural island, regular solid hexes, minimal seed/dimension controls | Complete; approved for commit |
-| 1.5 | Await user instructions | Not started |
+| 1 | Procedural island, regular solid hexes, minimal seed/dimension controls | Committed: afda00d |
+| 1.5 | Full water background, centered island origin, toolbar window toggle | Complete; approved for commit |
 | 2 | Tree and castle design and deterministic object placement | Not started |
 | Later | Camera interaction and other approved refinements | Not started |
 
@@ -77,14 +83,32 @@ integrating them. Do not resurrect the rejected sprite assets.
 - No application test framework exists; validation harnesses remain outside the
   repository. Real desktop UI interaction should also be checked by the user.
 
+Milestone 1.5:
+
+- Water color clears the entire framebuffer, blending with map water outside
+  the finite generated grid. No new water tiles or generation changes.
+- Map is centered on the full window with symmetric margins and no reserved
+  sidebar. Island controls and menu overlay it; hiding the controls does not
+  change the map transform.
+- Cross and `(0, 0)` label mark the island's axial origin at the exact screen
+  center. Generation uses that origin as its radial center and retains the
+  connected island containing it. The marker shares the renderer's MapView.
+- Default control-window position is upper right; saved ImGui positions persist.
+- Passed: Ninja build, viewport corner water-color checks, simulated mouse
+  close/reopen through View > Island, and unchanged map data after toggling.
+- Passed: 900-map checks across odd/even and narrow dimensions, inland origin,
+  centered projection, coordinate round trips, connectivity, and all tile
+  corners fitting the viewport. Determinism and water borders remain valid.
+- Visually inspected SDL-rendered preview: `/tmp/miniworld-milestone15-preview.png`.
+
 ## Outstanding work / next action
 
-- Milestone 1 is approved. Wait for Milestone 1.5 instructions; do not start
-  Milestone 2 or further refinements yet.
+- Milestone 1.5 is approved. Next: Milestone 2 tree/castle design review, then
+  deterministic placement after visual approval. Await instructions before starting.
 - No trees, castle, object data, camera, grid overlay, or gameplay is implemented.
 - Same-color adjacent hexes intentionally merge visually: no grid outlines.
 - Rendering currently builds a small vertex batch each frame; caching can wait
-  until measurement justifies it. UI reserves space on the left for controls.
+  until measurement justifies it. UI windows overlay the world.
 - Keep unrelated edits to AGENTS.md and the staged `.run/Miniworld.run.xml`
   deletion untouched. Do not commit unrelated files.
 

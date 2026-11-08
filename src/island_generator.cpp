@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <stdexcept>
-#include <utility>
 
 namespace {
 float lattice_noise(glm::ivec2 point, std::uint32_t seed)
@@ -30,33 +29,26 @@ float noise(glm::vec2 point, std::uint32_t seed)
 void keep_main_island(TileMap& map)
 {
     std::vector<bool> visited(map.tiles.size(), false);
-    std::vector<int> largest;
-    for (int start = 0; start < static_cast<int>(map.tiles.size()); ++start) {
-        if (visited[start] || map.tiles[start] == Terrain::water) {
-            continue;
-        }
-        std::vector<int> connected{start};
-        visited[start] = true;
-        for (std::size_t next = 0; next < connected.size(); ++next) {
-            const glm::ivec2 hex = map.hex_at(connected[next]);
-            for (glm::ivec2 direction : hex_neighbors) {
-                const glm::ivec2 neighbor = hex + direction;
-                if (!map.contains(neighbor)) {
-                    continue;
-                }
-                const int index = map.index(neighbor);
-                if (!visited[index] && map.tiles[index] != Terrain::water) {
-                    visited[index] = true;
-                    connected.push_back(index);
-                }
+    // Keep the component containing the island's origin, never an offshore fragment.
+    const int start = map.index({0, 0});
+    std::vector<int> connected{start};
+    visited[start] = true;
+    for (std::size_t next = 0; next < connected.size(); ++next) {
+        const glm::ivec2 hex = map.hex_at(connected[next]);
+        for (glm::ivec2 direction : hex_neighbors) {
+            const glm::ivec2 neighbor = hex + direction;
+            if (!map.contains(neighbor)) {
+                continue;
             }
-        }
-        if (connected.size() > largest.size()) {
-            largest = std::move(connected);
+            const int index = map.index(neighbor);
+            if (!visited[index] && map.tiles[index] != Terrain::water) {
+                visited[index] = true;
+                connected.push_back(index);
+            }
         }
     }
     std::fill(map.tiles.begin(), map.tiles.end(), Terrain::water);
-    for (int index : largest) {
+    for (int index : connected) {
         map.tiles[index] = Terrain::grass;
     }
 }
@@ -76,7 +68,7 @@ TileMap generate_island(int width, int height, std::uint32_t seed)
         if (column == 0 || row == 0 || column == width - 1 || row == height - 1) {
             continue;
         }
-        const glm::vec2 position = (hex_center(map.hex_at(index)) - half_extent) / half_extent;
+        const glm::vec2 position = hex_center(map.hex_at(index)) / half_extent;
         const float elevation = 0.68f - glm::length(position)
                               + 0.24f * noise(position * 2.8f, seed)
                               + 0.08f * noise(position * 6.0f, seed ^ 0xa341316cu);
@@ -97,7 +89,7 @@ TileMap generate_island(int width, int height, std::uint32_t seed)
             const glm::ivec2 neighbor = hex + direction;
             return !map.contains(neighbor) || land_mask[map.index(neighbor)] == Terrain::water;
         });
-        const glm::vec2 position = (hex_center(hex) - half_extent) / half_extent;
+        const glm::vec2 position = hex_center(hex) / half_extent;
         if (coastal) {
             map.tiles[index] = Terrain::sand;
         } else {

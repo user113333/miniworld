@@ -32,6 +32,7 @@ add_executable(miniworld
     src/island_generator.cpp
     src/map_renderer.cpp
     src/island_demo.cpp
+    src/island_controls.cpp
 )
 target_compile_features(miniworld PRIVATE cxx_std_17)
 target_link_libraries(miniworld PRIVATE imgui glm::glm)

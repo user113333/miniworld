@@ -4,18 +4,22 @@
 
 #include <random>
 
-struct SDL_Renderer;
+struct IslandSettings {
+    int width = 48;
+    int height = 32;
+    std::uint32_t seed = 0;
+};
 
 class IslandDemo {
 public:
     IslandDemo();
-    void draw_controls();
-    void draw(SDL_Renderer* renderer) const;
+    void generate();
+    void regenerate();
+    const TileMap& map() const { return map_; }
+
+    IslandSettings settings;
 
 private:
     std::mt19937 random_{std::random_device{}()};
-    int width_ = 48;
-    int height_ = 32;
-    std::uint32_t seed_;
     TileMap map_;
 };

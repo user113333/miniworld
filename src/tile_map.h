@@ -13,21 +13,30 @@ struct TileMap {
     std::uint32_t seed;
     std::vector<Terrain> tiles;
 
+    // World (0, 0) is the middle storage tile, not the upper-left corner.
+    glm::ivec2 storage_origin() const
+    {
+        const int row = height / 2;
+        return {width / 2 - row / 2, row};
+    }
+
     // Storage is a rectangular odd-row offset grid; world coordinates are axial.
     glm::ivec2 hex_at(int index) const
     {
         const int row = index / width;
-        return {index % width - row / 2, row};
+        return glm::ivec2{index % width - row / 2, row} - storage_origin();
     }
 
     bool contains(glm::ivec2 hex) const
     {
-        const int column = hex.x + hex.y / 2;
-        return hex.y >= 0 && hex.y < height && column >= 0 && column < width;
+        const glm::ivec2 storage = hex + storage_origin();
+        const int column = storage.x + storage.y / 2;
+        return storage.y >= 0 && storage.y < height && column >= 0 && column < width;
     }
 
     int index(glm::ivec2 hex) const
     {
-        return hex.y * width + hex.x + hex.y / 2;
+        const glm::ivec2 storage = hex + storage_origin();
+        return storage.y * width + storage.x + storage.y / 2;
     }
 };

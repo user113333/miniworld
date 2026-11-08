@@ -1,4 +1,6 @@
 #include "application_ui.h"
+#include "island_controls.h"
+#include "map_renderer.h"
 
 #include <SDL3/SDL.h>
 #include <misc/freetype/imgui_freetype.h>
@@ -53,7 +55,7 @@ void ApplicationUi::update_scale(SDL_Window* window)
     style.FontScaleDpi = scale;
 }
 
-void ApplicationUi::draw(bool& running)
+void ApplicationUi::draw(bool& running, IslandDemo& island, const MapView& view)
 {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -63,12 +65,26 @@ void ApplicationUi::draw(bool& running)
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Island", nullptr, &show_island_window_);
             ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window_);
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
 
+    if (view.radius > 0.0f) {
+        ImDrawList* overlay = ImGui::GetBackgroundDrawList();
+        const ImVec2 origin(view.origin.x, view.origin.y);
+        const float scale = ImGui::GetStyle().FontScaleDpi;
+        const float arm = 4.0f * scale;
+        const ImU32 color = IM_COL32(227, 230, 255, 255);
+        overlay->AddLine(ImVec2(origin.x - arm, origin.y), ImVec2(origin.x + arm, origin.y), color);
+        overlay->AddLine(ImVec2(origin.x, origin.y - arm), ImVec2(origin.x, origin.y + arm), color);
+        overlay->AddText(ImVec2(origin.x + arm * 2, origin.y), color, "(0, 0)");
+    }
+    if (show_island_window_) {
+        draw_island_controls(island, show_island_window_);
+    }
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }

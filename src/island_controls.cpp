@@ -1,0 +1,31 @@
+#include "island_controls.h"
+#include "island_demo.h"
+
+#include <imgui.h>
+
+#include <algorithm>
+
+void draw_island_controls(IslandDemo& island, bool& open)
+{
+    const ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 12, 40), ImGuiCond_FirstUseEver, ImVec2(1, 0));
+    ImGui::SetNextWindowSize(ImVec2(240, 0), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Island", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Current seed: %u", island.map().seed);
+        IslandSettings& settings = island.settings;
+        ImGui::InputScalar("Seed", ImGuiDataType_U32, &settings.seed);
+        ImGui::InputInt("Width", &settings.width);
+        ImGui::InputInt("Height", &settings.height);
+        settings.width = std::clamp(settings.width, 12, 96);
+        settings.height = std::clamp(settings.height, 12, 72);
+        if (ImGui::Button("Generate")) {
+            island.generate();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Regenerate")) {
+            island.regenerate();
+        }
+        ImGui::TextUnformatted("Edit seed, then Regenerate.");
+    }
+    ImGui::End();
+}

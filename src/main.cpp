@@ -1,5 +1,6 @@
 #include "application_ui.h"
 #include "island_demo.h"
+#include "map_renderer.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -75,15 +76,21 @@ int main(int, char**)
         ui.update_scale(window);
         ImGui::NewFrame();
 
-        ui.draw(running);
-        island.draw_controls();
+        const ImGuiIO& io = ImGui::GetIO();
+        const float margin = 16.0f * ImGui::GetStyle().FontScaleDpi;
+        const MapView view = fit_map(island.map(), {margin, margin, io.DisplaySize.x - 2 * margin,
+                                                  io.DisplaySize.y - 2 * margin});
+        ui.draw(running, island, view);
 
         ImGui::Render();
         // The ImGui renderer backend applies DisplayFramebufferScale itself.
         SDL_SetRenderScale(renderer, 1.0f, 1.0f);
-        SDL_SetRenderDrawColor(renderer, 30, 35, 45, 255);
+        const SDL_FColor water = terrain_color(Terrain::water);
+        SDL_SetRenderDrawColorFloat(renderer, water.r, water.g, water.b, water.a);
         SDL_RenderClear(renderer);
-        island.draw(renderer);
+        SDL_SetRenderScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+        draw_map(renderer, island.map(), view);
+        SDL_SetRenderScale(renderer, 1.0f, 1.0f);
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
