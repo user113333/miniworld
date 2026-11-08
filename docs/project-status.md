@@ -4,6 +4,30 @@ The hex-island project is complete and merged into `master`. Both local feature
 branches were deleted. Read `AGENTS.md` and check `git status` before working.
 The milestone record is [here](tasks/hex-island-generation.md).
 
+## Next planned task: colony simulation foundation
+
+Long-term direction: develop this prototype into a colony simulation. The next
+task is planned in [colony-simulation-foundation.md](tasks/colony-simulation-foundation.md).
+It has not been implemented; a new session should read that plan before coding.
+
+1. Add shared fixed-step simulation time, pause and speed controls.
+2. Add gradual tree births, grass-weighted forest growth, aging, death and decay,
+   using the supplied `tree_growing.png` and `tree_dead.png`.
+3. Add simulation-time fire spread and an ImGui click-to-ignite tool.
+4. Add burned terrain and gradual recovery allowing later tree regrowth.
+
+The plan covers deterministic updates, occupancy, overlapping-sprite picking,
+initial-density behavior, reset semantics, performance limits and CTest additions.
+The companion [tree-fire particle plan](tasks/tree-fire-particles.md) specifies a
+shared bounded CPU pool for pixel flames, rising smoke and embers. Both plans now
+use one 32 Hz simulation clock: world rules run every eight ticks (4 Hz), while
+particles advance on every tick, sharing pause/speed/reset behavior. Particle
+logic and SDL drawing stay separate from fire propagation and cannot affect it.
+The two extra sprites are user-supplied assets; their image data must remain unchanged.
+Planning modified only Markdown. No implementation, build or asset changes were
+performed. Start with the clock phase only when implementation is authorized;
+the older completed island task does not need to be reopened.
+
 ## Approved behavior
 
 - Regular pointy-top hexes drawn at runtime, one solid color per terrain tile.
