@@ -22,13 +22,10 @@
 - Use Flecs as the authoritative actor store and simulation system library. Keep actor components/factories in `src/actors/`, simulation in `src/simulation/`, terrain in `src/world/`, SDL drawing in `src/render/`, and CPU effects in `src/effects/`.
 - Keep UI, rendering, and game logic separate. Game logic must not depend on SDL or ImGui.
 - Keep application-owned ImGui code in `src/gui/`: windows, menus, styling, input capture, context/backends, and GUI frame handling. Application forwards GUI calls through this layer.
-- Preserve seeded output during readability-only refactors.
 
 # Build
 - Use CMake presets and Ninja.
 - Keep build definitions in the root CMakeLists.txt.
-- Build after code changes.
-- Run affected CTest tests; `ctest --preset debug` runs the full regression suite.
 
 # Scope
 - Do not modify vendored libraries in lib/ unless requested.
