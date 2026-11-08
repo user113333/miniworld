@@ -28,7 +28,12 @@ target_compile_features(miniworld PRIVATE cxx_std_17)
 target_link_libraries(miniworld PRIVATE imgui)
 
 configure_file(
-    ${PROJECT_SOURCE_DIR}/res/fonts/plex.ttf
-    ${CMAKE_CURRENT_BINARY_DIR}/res/fonts/plex.ttf
+    ${PROJECT_SOURCE_DIR}/res/fonts/CozetteVector.ttf
+    ${CMAKE_CURRENT_BINARY_DIR}/res/fonts/CozetteVector.ttf
+    COPYONLY
+)
+configure_file(
+    ${PROJECT_SOURCE_DIR}/res/fonts/Cozette-LICENSE
+    ${CMAKE_CURRENT_BINARY_DIR}/res/fonts/Cozette-LICENSE
     COPYONLY
 )

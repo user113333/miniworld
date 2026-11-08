@@ -1,6 +1,7 @@
 #include "application_ui.h"
 
 #include <SDL3/SDL.h>
+#include <misc/freetype/imgui_freetype.h>
 
 #include <string>
 
@@ -16,18 +17,19 @@ bool ApplicationUi::initialize()
         SDL_Log("Failed to locate application directory: %s", SDL_GetError());
         return false;
     }
-    const std::string font_path = std::string(base_path) + "res/fonts/plex.ttf";
+    const std::string font_path = std::string(base_path) + "res/fonts/CozetteVector.ttf";
     SDL_PathInfo font_info;
     if (!SDL_GetPathInfo(font_path.c_str(), &font_info)) {
         SDL_Log("Failed to locate font: %s", SDL_GetError());
         return false;
     }
 
-    // FreeType defaults to native hinting with grayscale antialiasing.
-    // Keep fractional advances: PixelSnapH would break fractional DPI scaling.
+    // Cozette's native grid is 6x13 pixels. Preserve its hard pixel edges.
     ImFontConfig font_config;
-    font_config.FontLoaderFlags = 0;
-    if (!io.Fonts->AddFontFromFileTTF(font_path.c_str(), 15.0f, &font_config)) {
+    font_config.PixelSnapH = true;
+    font_config.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_MonoHinting |
+                                  ImGuiFreeTypeLoaderFlags_Monochrome;
+    if (!io.Fonts->AddFontFromFileTTF(font_path.c_str(), 13.0f, &font_config)) {
         SDL_Log("Failed to load font: %s", font_path.c_str());
         return false;
     }
