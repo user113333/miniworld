@@ -66,6 +66,7 @@ void ApplicationUi::draw(bool& running, IslandDemo& island, const MapView& view)
         }
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Island", nullptr, &show_island_window_);
+            ImGui::Separator();
             ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window_);
             ImGui::EndMenu();
         }
