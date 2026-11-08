@@ -10,7 +10,8 @@ class ApplicationUi {
 public:
     bool initialize();
     void update_scale(SDL_Window* window);
-    void draw(bool& running, IslandDemo& island, const MapView& view);
+    void draw(bool& running, IslandDemo& island);
+    void draw_origin_hint(const MapView& view) const;
 
 private:
     ImGuiStyle base_style_;

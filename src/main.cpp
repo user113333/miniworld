@@ -79,11 +79,14 @@ int main(int, char**)
         ui.update_scale(window);
         ImGui::NewFrame();
 
+        // UI actions can replace the map, so fit the view after processing them.
+        ui.draw(running, island);
+
         const ImGuiIO& io = ImGui::GetIO();
         const float margin = 16.0f * ImGui::GetStyle().FontScaleDpi;
         const MapView view = fit_map(island.map(), {margin, margin, io.DisplaySize.x - 2 * margin,
                                                   io.DisplaySize.y - 2 * margin});
-        ui.draw(running, island, view);
+        ui.draw_origin_hint(view);
 
         ImGui::Render();
         // The ImGui renderer backend applies DisplayFramebufferScale itself.

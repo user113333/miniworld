@@ -15,5 +15,7 @@ cmake --build --preset debug
 ## CLion
 
 Open the root `CMakeLists.txt`. Enable the `debug` CMake profile, reload,
-then run `Miniworld`.
+then run `miniworld`.
+
+[Project notes](docs/project-status.md)
 

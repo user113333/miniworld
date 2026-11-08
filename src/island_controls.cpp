@@ -7,9 +7,14 @@
 
 void draw_island_controls(IslandDemo& island, bool& open)
 {
-    const ImGuiIO& io = ImGui::GetIO();
-    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 12, 40), ImGuiCond_FirstUseEver, ImVec2(1, 0));
-    ImGui::SetNextWindowSize(ImVec2(240, 0), ImGuiCond_FirstUseEver);
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const float scale = ImGui::GetStyle().FontScaleDpi;
+    const float margin = 12.0f * scale;
+    // WorkPos can still describe the previous frame when the DPI first changes.
+    const float top = glm::max(viewport->WorkPos.y, viewport->Pos.y + ImGui::GetFrameHeight());
+    ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + viewport->WorkSize.x - margin, top + margin),
+                            ImGuiCond_FirstUseEver, ImVec2(1, 0));
+    ImGui::SetNextWindowSize(ImVec2(240.0f * scale, 0), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Island", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Current seed: %u", island.map().seed);
         IslandSettings& settings = island.settings;

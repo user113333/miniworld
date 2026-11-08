@@ -55,7 +55,7 @@ void ApplicationUi::update_scale(SDL_Window* window)
     style.FontScaleDpi = scale;
 }
 
-void ApplicationUi::draw(bool& running, IslandDemo& island, const MapView& view)
+void ApplicationUi::draw(bool& running, IslandDemo& island)
 {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -73,20 +73,25 @@ void ApplicationUi::draw(bool& running, IslandDemo& island, const MapView& view)
         ImGui::EndMainMenuBar();
     }
 
-    if (view.radius > 0.0f) {
-        ImDrawList* overlay = ImGui::GetBackgroundDrawList();
-        const ImVec2 origin(view.origin.x, view.origin.y);
-        const float scale = ImGui::GetStyle().FontScaleDpi;
-        const float arm = 4.0f * scale;
-        const ImU32 color = IM_COL32(227, 230, 255, 255);
-        overlay->AddLine(ImVec2(origin.x - arm, origin.y), ImVec2(origin.x + arm, origin.y), color);
-        overlay->AddLine(ImVec2(origin.x, origin.y - arm), ImVec2(origin.x, origin.y + arm), color);
-        overlay->AddText(ImVec2(origin.x + arm * 2, origin.y), color, "(0, 0)");
-    }
     if (show_island_window_) {
         draw_island_controls(island, show_island_window_);
     }
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
+}
+
+void ApplicationUi::draw_origin_hint(const MapView& view) const
+{
+    if (view.radius <= 0.0f) {
+        return;
+    }
+    ImDrawList* overlay = ImGui::GetBackgroundDrawList();
+    const ImVec2 origin(view.origin.x, view.origin.y);
+    const float scale = ImGui::GetStyle().FontScaleDpi;
+    const float arm = 4.0f * scale;
+    const ImU32 color = IM_COL32(227, 230, 255, 255);
+    overlay->AddLine(ImVec2(origin.x - arm, origin.y), ImVec2(origin.x + arm, origin.y), color);
+    overlay->AddLine(ImVec2(origin.x, origin.y - arm), ImVec2(origin.x, origin.y + arm), color);
+    overlay->AddText(ImVec2(origin.x + arm * 2, origin.y), color, "(0, 0)");
 }

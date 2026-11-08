@@ -1,5 +1,5 @@
-# Act as a Human
-- Work on small tasks
+# Working style
+- Work on small, focused tasks.
 - Make code readable.
 - Split code into files when it improves readability.
 - Keep README.md short and easy for humans to read. Include only essential information.
@@ -9,13 +9,18 @@
 - Use short, descriptive commit messages.
 
 # Code
-- For math code use glm
-- Keep UI, Rendering and Game logic code separate
+- Use GLM for vectors, coordinates, and geometry.
+- Keep UI, rendering, and game logic separate. Game logic must not depend on SDL or ImGui.
+- Preserve seeded output during readability-only refactors.
 
 # Build
 - Use CMake presets and Ninja.
+- Keep build definitions in the root CMakeLists.txt.
 - Build after code changes.
 
 # Scope
 - Do not modify vendored libraries in lib/ unless requested.
 - Leave unrelated local changes untouched.
+
+# Project context
+- Read docs/project-status.md for current behavior, validation, and deferred review work.
