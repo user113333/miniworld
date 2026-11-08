@@ -4,6 +4,7 @@
 #include "island_demo.h"
 #include "fire_effects.h"
 #include "tree_renderer.h"
+#include "tree_inspector.h"
 
 #include <optional>
 
@@ -38,6 +39,7 @@ private:
 
     ApplicationUi ui_;
     TreeRenderer trees_;
+    TreeInspector tree_inspector_;
     std::optional<IslandDemo> island_;
     ParticleSystem particles_;
     std::vector<FireEmitter> fire_emitters_;

@@ -84,6 +84,15 @@ systems were added. Review this completed foundation before the next milestone.
 The user-approved speed extension raises the per-frame bound to 400 base ticks
 and 50 world updates at 50x. Fractional time and fixed-step replay are preserved.
 
+The **Select entities** tool opens a closable **Tree** inspector on opaque sprite
+clicks. It shows live ID, hex position, stage, age and fire state. Selection and
+ignition tools are mutually exclusive; Escape disables either tool. Empty-ground
+clicks clear selection. The inspector follows a stable tree ID and closes when
+the tree decays or the world regenerates; it never retains a tree pointer.
+Validated with the Debug build, all 15 CTest suites and a headless SDL input smoke
+check covering selection gating/UI capture, close/reopen, empty clicks, Escape,
+decay/reset/stale clicks and the existing ignition tool.
+
 ## Approved behavior
 
 - Regular pointy-top hexes drawn at runtime, one solid color per terrain tile.
@@ -108,6 +117,7 @@ and 50 world updates at 50x. Fractional time and fixed-step replay are preserved
 | `main.cpp` | Entry point and top-level exception reporting |
 | `application.*` | Scoped SDL/ImGui ownership, initialization, events and frame orchestration |
 | `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
+| `tree_inspector.*` | Read-only selected-tree window, tracked by ID and world generation |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |
 | `world_simulation.*` | Seeded ecology/fire/recovery, stable IDs and occupancy |
@@ -140,7 +150,7 @@ Implemented and validated:
    Current frame height is checked because viewport WorkPos can lag by a frame.
 
 Frame order: measure monotonic elapsed time → events → platform/backend NewFrame
-→ UI actions → fit current map → resolve world clicks → advance world/effects ticks → origin
+→ UI actions → fit current map → resolve world clicks → advance world/effects ticks → inspector → origin
 hint → ImGui::Render → water clear → terrain → trees → ImGui → present.
 Map drawing applies framebuffer scale once; ImGui's backend handles its own scale.
 

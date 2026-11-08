@@ -43,7 +43,15 @@ void draw_island_controls(IslandDemo& island, bool& open)
         }
         ImGui::TextUnformatted("Seed, size and density apply on generation.");
         ImGui::Separator();
-        ImGui::Checkbox("Ignite trees", &settings.ignite_trees);
+        if (ImGui::Checkbox("Select entities", &settings.select_entities) && settings.select_entities) {
+            settings.ignite_trees = false;
+        }
+        if (ImGui::Checkbox("Ignite trees", &settings.ignite_trees) && settings.ignite_trees) {
+            settings.select_entities = false;
+        }
+        if (settings.select_entities) {
+            ImGui::TextUnformatted("Click a tree to inspect it. Esc exits the tool.");
+        }
         if (settings.ignite_trees) {
             ImGui::TextUnformatted("Click a tree. Esc exits the tool.");
         }

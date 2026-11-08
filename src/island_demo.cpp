@@ -19,6 +19,7 @@ void IslandDemo::regenerate()
     place_trees(map_, settings.tree_density);
     simulation_.reset(map_);
     clock_.reset();
+    settings.select_entities = false;
     settings.ignite_trees = false;
     ++world_generation_;
 }

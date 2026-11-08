@@ -102,6 +102,7 @@ bool Application::process_events()
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
         if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
+            island_->settings.select_entities = false;
             island_->settings.ignite_trees = false;
             world_clicks_.clear();
         }
@@ -135,6 +136,10 @@ void Application::draw_frame(double real_seconds)
                          {io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y});
     // Time measured before regeneration belongs to the old world.
     advance_simulation(island_->world_generation() == generation_before_ui ? real_seconds : 0.0);
+    tree_inspector_.draw(*island_);
+    if (island_->settings.select_entities && !io.WantCaptureMouse) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
     ui_.draw_origin_hint(view);
 
     ImGui::Render();
@@ -154,13 +159,17 @@ void Application::draw_frame(double real_seconds)
 void Application::resolve_world_clicks(const MapView& view, bool capture_mouse,
                                       glm::vec2 framebuffer_scale)
 {
-    if (!capture_mouse && island_->settings.ignite_trees) {
+    if (!capture_mouse && (island_->settings.select_entities || island_->settings.ignite_trees)) {
         for (const WorldClick& click : world_clicks_) {
             if (click.generation != island_->world_generation()) {
                 continue;
             }
             const auto id = trees_.pick(island_->map(), view, framebuffer_scale, click.position);
-            island_->queue_ignition(id, click.generation);
+            if (island_->settings.select_entities) {
+                tree_inspector_.select(id, click.generation);
+            } else {
+                island_->queue_ignition(id, click.generation);
+            }
         }
     }
     world_clicks_.clear();

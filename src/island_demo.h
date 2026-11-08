@@ -12,6 +12,7 @@ struct IslandSettings {
     std::uint32_t seed = 0;
     float tree_density = 0.20f;
     float simulation_speed = 1.0f;
+    bool select_entities = false;
     bool ignite_trees = false;
 };
 

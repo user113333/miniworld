@@ -15,7 +15,9 @@ void check_reset()
     // One completed tick and half a tick waiting in the accumulator.
     island.advance_simulation(SimulationClock::base_step_seconds * 0.75);
     test::expect(island.clock().ticks() == 1, "Controller did not apply the chosen speed");
+    island.settings.select_entities = true;
     island.regenerate();
+    test::expect(!island.settings.select_entities, "Regenerate kept the selection cursor enabled");
     test::expect(island.world_generation() == original_generation + 1, "Regenerate kept the old generation");
     test::expect(island.settings.simulation_speed == 2.0f, "Regenerate changed speed");
     test::expect(island.clock().ticks() == 0, "Regenerate did not reset elapsed time");
