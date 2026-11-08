@@ -28,7 +28,7 @@ The two extra sprites are user-supplied assets; their image data must remain unc
 
 Phase 1 adds a domain-only `SimulationClock`, owned by `IslandDemo`. It admits at
 most 250 ms of real time per frame at 0–50x speed (whole-number slider steps),
-advances 32 Hz base ticks and exposes the eight-tick world cadence. The Island window has a
+advances 32 Hz base ticks and exposes the eight-tick world cadence. The Simulation window has a
 speed slider, Pause/Resume (restoring the previous speed) and elapsed simulation
 seconds. Pause preserves fractional time; minimized time and the first restored
 interval are discarded. Generate/Regenerate resets time and fractional steps,
@@ -93,6 +93,14 @@ Validated with the Debug build, all 15 CTest suites and a headless SDL input smo
 check covering selection gating/UI capture, close/reopen, empty clicks, Escape,
 decay/reset/stale clicks and the existing ignition tool.
 
+The **Island** window contains generation settings (seed, dimensions and initial
+tree density) and Generate/Regenerate. The **Simulation** window contains speed,
+pause/resume, elapsed time, live tree counts, selection/ignition tools and queued
+ignitions. Both windows can be closed and reopened independently from **View**.
+Validated with a Debug build, controller/picking/fire integration CTests and a
+headless UI check of layout, pause/resume, tool exclusivity, input capture and
+closing/reopening Simulation through View.
+
 ## Approved behavior
 
 - Regular pointy-top hexes drawn at runtime, one solid color per terrain tile.
@@ -105,7 +113,7 @@ decay/reset/stale clicks and the existing ignition tool.
   occupied fraction of eligible grass/land tiles; higher values fill the same patches.
 - Nearest tree filtering, integer physical-pixel sprite scaling, snapped anchors.
 - Cozette at 13 px with FreeType monochrome hinting; ImGui docking is removed.
-- View > Island and View > ImGui demo toggle the windows. Island can be closed.
+- View > Island, Simulation and ImGui demo toggle their respective windows.
 - Generate chooses a random seed; Regenerate uses the edited seed/dimensions.
   Initial density applies on generation; natural tree turnover leaves terrain unchanged.
 - No colonists, castle, house integration, camera or grid. `house1.png` is unused.
@@ -117,6 +125,7 @@ decay/reset/stale clicks and the existing ignition tool.
 | `main.cpp` | Entry point and top-level exception reporting |
 | `application.*` | Scoped SDL/ImGui ownership, initialization, events and frame orchestration |
 | `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
+| `simulation_controls.*` | Simulation time, live population counts and interaction tools |
 | `tree_inspector.*` | Read-only selected-tree window, tracked by ID and world generation |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |

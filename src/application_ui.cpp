@@ -1,5 +1,6 @@
 #include "application_ui.h"
 #include "island_controls.h"
+#include "simulation_controls.h"
 #include "map_renderer.h"
 
 #include <SDL3/SDL.h>
@@ -66,6 +67,7 @@ void ApplicationUi::draw(bool& running, IslandDemo& island)
         }
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Island", nullptr, &show_island_window_);
+            ImGui::MenuItem("Simulation", nullptr, &show_simulation_window_);
             ImGui::Separator();
             ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window_);
             ImGui::EndMenu();
@@ -75,6 +77,9 @@ void ApplicationUi::draw(bool& running, IslandDemo& island)
 
     if (show_island_window_) {
         draw_island_controls(island, show_island_window_);
+    }
+    if (show_simulation_window_) {
+        draw_simulation_controls(island, show_simulation_window_);
     }
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);

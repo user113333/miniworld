@@ -27,13 +27,6 @@ void draw_island_controls(IslandDemo& island, bool& open)
         if (ImGui::SliderFloat("Initial tree density", &density_percent, 0.0f, 100.0f, "%.0f%%")) {
             settings.tree_density = density_percent / 100.0f;
         }
-        ImGui::Text("Trees: %zu", island.map().trees.size());
-        const auto growing = std::count_if(island.map().trees.begin(), island.map().trees.end(),
-            [](const Tree& tree) { return tree.stage == TreeStage::growing; });
-        const auto dead = std::count_if(island.map().trees.begin(), island.map().trees.end(),
-            [](const Tree& tree) { return tree.stage == TreeStage::dead; });
-        ImGui::Text("Saplings: %zu  Dead: %zu", static_cast<std::size_t>(growing),
-                    static_cast<std::size_t>(dead));
         if (ImGui::Button("Generate")) {
             island.generate();
         }
@@ -42,35 +35,6 @@ void draw_island_controls(IslandDemo& island, bool& open)
             island.regenerate();
         }
         ImGui::TextUnformatted("Seed, size and density apply on generation.");
-        ImGui::Separator();
-        if (ImGui::Checkbox("Select entities", &settings.select_entities) && settings.select_entities) {
-            settings.ignite_trees = false;
-        }
-        if (ImGui::Checkbox("Ignite trees", &settings.ignite_trees) && settings.ignite_trees) {
-            settings.select_entities = false;
-        }
-        if (settings.select_entities) {
-            ImGui::TextUnformatted("Click a tree to inspect it. Esc exits the tool.");
-        }
-        if (settings.ignite_trees) {
-            ImGui::TextUnformatted("Click a tree. Esc exits the tool.");
-        }
-        if (island.pending_ignitions() > 0) {
-            ImGui::Text("Ignitions queued: %zu%s", island.pending_ignitions(),
-                        settings.simulation_speed == 0.0f ? " (paused)" : "");
-        }
-        ImGui::Separator();
-        int speed = static_cast<int>(settings.simulation_speed);
-        if (ImGui::SliderInt("Speed", &speed, 0,
-                             static_cast<int>(SimulationClock::max_speed), "%dx",
-                             ImGuiSliderFlags_AlwaysClamp)) {
-            settings.simulation_speed = static_cast<float>(speed);
-        }
-        if (ImGui::Button(settings.simulation_speed > 0.0f ? "Pause" : "Resume")) {
-            island.toggle_pause();
-        }
-        ImGui::SameLine();
-        ImGui::Text("Simulation: %.2f s", island.clock().elapsed_seconds());
     }
     ImGui::End();
 }

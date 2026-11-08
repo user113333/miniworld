@@ -18,4 +18,5 @@ private:
     float content_scale_ = 0.0f;
     bool show_demo_window_ = false;
     bool show_island_window_ = true;
+    bool show_simulation_window_ = true;
 };

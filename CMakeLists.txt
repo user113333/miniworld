@@ -51,6 +51,7 @@ add_executable(miniworld
     src/application_ui.cpp
     src/map_renderer.cpp
     src/island_controls.cpp
+    src/simulation_controls.cpp
     src/tree_renderer.cpp
     src/tree_inspector.cpp
     src/particle_renderer.cpp
