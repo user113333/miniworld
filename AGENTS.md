@@ -8,6 +8,10 @@
 - Before committing, summarize the changes and validation, then wait for my approval.
 - Use short, descriptive commit messages.
 
+# Code
+- For math code use glm
+- Keep UI, Rendering and Game logic code separate
+
 # Build
 - Use CMake presets and Ninja.
 - Build after code changes.
