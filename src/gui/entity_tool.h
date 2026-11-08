@@ -1,3 +1,3 @@
 #pragma once
 
-enum class EntityTool { none, select, ignite };
+enum class EntityTool { none, select, ignite, camera };

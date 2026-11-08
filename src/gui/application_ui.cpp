@@ -3,6 +3,7 @@
 #include "simulation_controls.h"
 #include "simulation/simulation.h"
 #include "render/map_renderer.h"
+#include "render/camera.h"
 
 #include <SDL3/SDL.h>
 #include <imgui_impl_sdl3.h>
@@ -143,9 +144,14 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
         cancel_tool();
         world_generation_ = simulation.world_generation();
     }
+    const ImGuiIO& io = ImGui::GetIO();
+    if (!io.WantCaptureKeyboard && ImGui::IsKeyPressed(ImGuiKey_Space, false)) {
+        tool_ = tool_ == EntityTool::camera ? EntityTool::none : EntityTool::camera;
+    }
     if (show_simulation_window_) {
         draw_simulation_controls(simulation, tool_, show_simulation_window_);
     }
+    actor_inspector_.draw(simulation);
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
@@ -158,11 +164,28 @@ void ApplicationUi::select_actor(ActorHandle actor)
 
 void ApplicationUi::draw_overlays(const Simulation& simulation, const MapView& view)
 {
-    actor_inspector_.draw(simulation);
     if (tool_ == EntityTool::select && !ImGui::GetIO().WantCaptureMouse) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
     draw_origin_hint(view);
+}
+
+void ApplicationUi::update_camera(Camera& camera, const MapView& centered)
+{
+    const ImGuiIO& io = ImGui::GetIO();
+    if (tool_ != EntityTool::camera || io.WantCaptureMouse || io.AppFocusLost) {
+        camera_dragging_ = false;
+        return;
+    }
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) camera_dragging_ = true;
+    if (!ImGui::IsMouseDown(ImGuiMouseButton_Left)) camera_dragging_ = false;
+    if (camera_dragging_) {
+        camera.pan({io.MouseDelta.x, io.MouseDelta.y});
+    }
+    if (io.MouseWheel != 0.0f) {
+        camera.zoom(io.MouseWheel, {io.MousePos.x, io.MousePos.y}, centered);
+    }
+    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
 }
 
 void ApplicationUi::finish_frame()

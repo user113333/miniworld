@@ -108,13 +108,15 @@ void Application::draw_frame(double real_seconds)
     ui_.draw(running_, *simulation_);
     const GuiFrameState frame = ui_.frame_state();
     const float margin = 16.0f * frame.content_scale;
-    const MapView view = centered_map_view({margin, margin, frame.display_size.x - 2 * margin,
+    const MapView centered = centered_map_view({margin, margin, frame.display_size.x - 2 * margin,
                                                frame.display_size.y - 2 * margin});
-    resolve_world_clicks(view, frame.capture_mouse, frame.framebuffer_scale);
+    ui_.update_camera(camera_, centered);
+    const MapView view = camera_.view(centered);
+    resolve_world_clicks(view, ui_.frame_state().capture_mouse, frame.framebuffer_scale);
     // Time measured before regeneration belongs to the old world.
     advance_simulation(simulation_->world_generation() == generation_before_ui ? real_seconds : 0.0);
-    ui_.draw_overlays(*simulation_, view);
 
+    ui_.draw_overlays(*simulation_, view);
     ui_.finish_frame();
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
     const SDL_FColor water = terrain_color(Terrain::water);
@@ -131,7 +133,7 @@ void Application::draw_frame(double real_seconds)
 void Application::resolve_world_clicks(const MapView& view, bool capture_mouse,
                                       glm::vec2 framebuffer_scale)
 {
-    if (!capture_mouse && ui_.tool() != EntityTool::none) {
+    if (!capture_mouse && (ui_.tool() == EntityTool::select || ui_.tool() == EntityTool::ignite)) {
         for (const WorldClick& click : world_clicks_) {
             if (click.generation != simulation_->world_generation()) {
                 continue;

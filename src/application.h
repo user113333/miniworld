@@ -4,6 +4,7 @@
 #include "simulation/simulation.h"
 #include "effects/fire_effects.h"
 #include "render/actor_renderer.h"
+#include "render/camera.h"
 
 #include <optional>
 
@@ -34,6 +35,7 @@ private:
     bool running_ = false;
 
     ApplicationUi ui_;
+    Camera camera_;
     ActorRenderer actors_;
     std::optional<Simulation> simulation_;
     ParticleSystem particles_;

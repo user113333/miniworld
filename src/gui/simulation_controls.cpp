@@ -44,6 +44,13 @@ void draw_simulation_controls(Simulation& simulation, EntityTool& tool, bool& op
         if (ImGui::Checkbox("Select entities", &select)) tool = select ? EntityTool::select : EntityTool::none;
         bool ignite = tool == EntityTool::ignite;
         if (ImGui::Checkbox("Ignite trees", &ignite)) tool = ignite ? EntityTool::ignite : EntityTool::none;
+        bool camera = tool == EntityTool::camera;
+        if (ImGui::Checkbox("Camera control (Space)", &camera)) {
+            tool = camera ? EntityTool::camera : EntityTool::none;
+        }
+        if (tool == EntityTool::camera) {
+            ImGui::TextUnformatted("Drag to pan. Scroll to zoom. Esc exits.");
+        }
         if (tool == EntityTool::select) {
             ImGui::TextUnformatted("Click a tree to inspect it. Esc exits the tool.");
         }

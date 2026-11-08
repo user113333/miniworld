@@ -1,4 +1,5 @@
 #include "render/map_renderer.h"
+#include "render/camera.h"
 #include "test_support.h"
 
 #include <array>
@@ -85,6 +86,26 @@ int main()
         test::expect(small.origin == glm::vec2(320, 240) &&
                      large.origin == glm::vec2(960, 540), "Resizing must center the world");
         test::expect(small.radius == large.radius, "Resizing must preserve world scale");
+        Camera camera;
+        camera.pan({40, -30});
+        test::expect(camera.view(small).origin == small.origin + glm::vec2(40, -30),
+                     "Camera drag must translate the view");
+        const glm::vec2 cursor{170, 180};
+        const auto before = camera.view(small);
+        const glm::vec2 world = (cursor - before.origin) / before.radius;
+        camera.zoom(2, cursor, small);
+        const auto zoomed = camera.view(small);
+        test::expect(zoomed.radius > before.radius &&
+                     glm::length(zoomed.origin + world * zoomed.radius - cursor) < 0.001f,
+                     "Zoom must preserve the world point under the cursor");
+        test::expect(camera.view(large).radius == zoomed.radius,
+                     "Resizing must preserve camera zoom");
+        camera.zoom(10000, cursor, small);
+        test::expect(camera.view(small).radius == small.radius * 8,
+                     "Camera zoom must have an upper bound");
+        camera.zoom(-10000, cursor, small);
+        test::expect(camera.view(small).radius == small.radius * 0.25f,
+                     "Camera zoom must have a lower bound");
         SDL_Surface* surface = SDL_CreateSurface(240, 200, SDL_PIXELFORMAT_RGBA32);
         test::expect(surface != nullptr, "Cannot create terrain test surface");
         SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);

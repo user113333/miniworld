@@ -40,8 +40,10 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
 
 ## Preserved behavior
 
-- Window resizing keeps a fixed 20-unit hex radius and centers the world; smaller
-  windows crop the view instead of shrinking terrain and tree sprites.
+- Camera starts centered with a 20-unit hex radius. Resizing preserves pan/zoom.
+  Simulation's exclusive Camera control toggle (Space, when keyboard is not captured)
+  enables left-drag panning and cursor-centered wheel zoom (0.25–8x). Escape exits;
+  GUI mouse capture blocks camera input. Disabling the tool retains the view.
 
 - Seeded connected hex island, inland centered origin, water/sand/land/grass.
   Initial density preserves the approved coherent forest layout/variants/offsets.
