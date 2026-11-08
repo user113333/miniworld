@@ -4,6 +4,15 @@
 - Split code into files when it improves readability.
 - Keep README.md short and easy for humans to read. Include only essential information.
 
+# Usage efficiency
+- Prioritize conserving usage over parallel speed.
+- Work solo. Do not spawn sub-agents without my explicit approval.
+- Prefer medium reasoning for routine coding; reserve higher effort for difficult design or debugging.
+- Keep each task focused. Avoid extra cleanup, benchmarking, or reviews unless needed for the requested outcome.
+- Read relevant files and sections; avoid repeatedly loading entire plans, logs, or status documents.
+- Avoid duplicate reviews and validation while preserving necessary correctness checks.
+- Keep project-status handoffs concise so new milestones can start in fresh chats.
+
 # Git Commit
 - Before committing, summarize the changes and validation, then wait for my approval.
 - Use short, descriptive commit messages.
