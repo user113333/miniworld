@@ -80,6 +80,11 @@ void check_recovery_colors(SDL_Renderer* renderer, SDL_Surface* surface)
 int main()
 {
     return test::run("Burned terrain rendering", [] {
+        const MapView small = centered_map_view({16, 16, 608, 448});
+        const MapView large = centered_map_view({16, 16, 1888, 1048});
+        test::expect(small.origin == glm::vec2(320, 240) &&
+                     large.origin == glm::vec2(960, 540), "Resizing must center the world");
+        test::expect(small.radius == large.radius, "Resizing must preserve world scale");
         SDL_Surface* surface = SDL_CreateSurface(240, 200, SDL_PIXELFORMAT_RGBA32);
         test::expect(surface != nullptr, "Cannot create terrain test surface");
         SDL_Renderer* renderer = SDL_CreateSoftwareRenderer(surface);

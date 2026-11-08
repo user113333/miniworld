@@ -19,16 +19,10 @@ SDL_FColor terrain_color(Terrain terrain, bool weathered)
     return colors[static_cast<int>(terrain)];
 }
 
-MapView fit_map(const TileMap& map, const SDL_FRect& area)
+MapView centered_map_view(const SDL_FRect& area)
 {
-    // Regular pointy-top hexagons: width sqrt(3)*radius, height 2*radius.
-    const glm::vec2 storage_center = hex_center(map.storage_origin());
-    const glm::vec2 minimum = -glm::vec2{glm::sqrt(3.0f) * 0.5f, 1.0f} - storage_center;
-    const glm::vec2 maximum = glm::vec2{glm::sqrt(3.0f) * map.width,
-                                       1.5f * (map.height - 1) + 1.0f} - storage_center;
-    const glm::vec2 half_extent = glm::max(glm::abs(minimum), glm::abs(maximum));
-    const float radius = glm::max(0.0f, glm::min(area.w / (2 * half_extent.x),
-                                               area.h / (2 * half_extent.y)));
+    // Resizing reveals more or less world without changing terrain or sprite size.
+    constexpr float radius = 20.0f;
     const glm::vec2 origin = glm::vec2{area.x, area.y}
                            + glm::vec2{area.w, area.h} * 0.5f;
     return {origin, radius};

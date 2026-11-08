@@ -103,12 +103,12 @@ void Application::draw_frame(double real_seconds)
 {
     ui_.begin_frame(window_);
 
-    // UI actions can replace the map, so fit the view after processing them.
+    // Process UI actions before resolving world clicks.
     const auto generation_before_ui = simulation_->world_generation();
     ui_.draw(running_, *simulation_);
     const GuiFrameState frame = ui_.frame_state();
     const float margin = 16.0f * frame.content_scale;
-    const MapView view = fit_map(simulation_->map(), {margin, margin, frame.display_size.x - 2 * margin,
+    const MapView view = centered_map_view({margin, margin, frame.display_size.x - 2 * margin,
                                                frame.display_size.y - 2 * margin});
     resolve_world_clicks(view, frame.capture_mouse, frame.framebuffer_scale);
     // Time measured before regeneration belongs to the old world.

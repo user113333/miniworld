@@ -10,5 +10,5 @@ struct MapView {
 };
 
 SDL_FColor terrain_color(Terrain terrain, bool weathered = false);
-MapView fit_map(const TileMap& map, const SDL_FRect& area);
+MapView centered_map_view(const SDL_FRect& area);
 void draw_map(SDL_Renderer* renderer, const TileMap& map, const MapView& view);

@@ -40,6 +40,9 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
 
 ## Preserved behavior
 
+- Window resizing keeps a fixed 20-unit hex radius and centers the world; smaller
+  windows crop the view instead of shrinking terrain and tree sprites.
+
 - Seeded connected hex island, inland centered origin, water/sand/land/grass.
   Initial density preserves the approved coherent forest layout/variants/offsets.
 - Shared 32 Hz clock, 4 Hz world rules, integer 0–50x slider and pause/resume.
