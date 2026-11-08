@@ -2,8 +2,6 @@
 #include "map_renderer.h"
 
 #include <SDL3/SDL.h>
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_sdlrenderer3.h>
 
 #include <chrono>
 
@@ -11,15 +9,7 @@ Application::~Application()
 {
     // Textures and ImGui backends must be released before their SDL renderer.
     trees_.shutdown();
-    if (imgui_renderer_ready_) {
-        ImGui_ImplSDLRenderer3_Shutdown();
-    }
-    if (imgui_platform_ready_) {
-        ImGui_ImplSDL3_Shutdown();
-    }
-    if (imgui_context_) {
-        ImGui::DestroyContext(imgui_context_);
-    }
+    ui_.shutdown();
     if (renderer_) {
         SDL_DestroyRenderer(renderer_);
     }
@@ -46,15 +36,7 @@ bool Application::initialize()
     }
     SDL_SetRenderVSync(renderer_, 1);
 
-    IMGUI_CHECKVERSION();
-    imgui_context_ = ImGui::CreateContext();
-    if (!ui_.initialize()) {
-        return false;
-    }
-    imgui_platform_ready_ = ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
-    imgui_renderer_ready_ = imgui_platform_ready_ && ImGui_ImplSDLRenderer3_Init(renderer_);
-    if (!imgui_renderer_ready_) {
-        SDL_Log("ImGui backend initialization failed");
+    if (!ui_.initialize(window_, renderer_)) {
         return false;
     }
     if (!trees_.initialize(renderer_)) {
@@ -100,7 +82,7 @@ bool Application::process_events()
     bool running = true;
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        ImGui_ImplSDL3_ProcessEvent(&event);
+        ui_.process_event(event);
         if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE) {
             island_->settings.select_entities = false;
             island_->settings.ignite_trees = false;
@@ -120,39 +102,30 @@ bool Application::process_events()
 
 void Application::draw_frame(double real_seconds)
 {
-    ImGui_ImplSDLRenderer3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    ui_.update_scale(window_);
-    ImGui::NewFrame();
+    ui_.begin_frame(window_);
 
     // UI actions can replace the map, so fit the view after processing them.
     const auto generation_before_ui = island_->world_generation();
     ui_.draw(running_, *island_);
-    const ImGuiIO& io = ImGui::GetIO();
-    const float margin = 16.0f * ImGui::GetStyle().FontScaleDpi;
-    const MapView view = fit_map(island_->map(), {margin, margin, io.DisplaySize.x - 2 * margin,
-                                               io.DisplaySize.y - 2 * margin});
-    resolve_world_clicks(view, io.WantCaptureMouse,
-                         {io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y});
+    const GuiFrameState frame = ui_.frame_state();
+    const float margin = 16.0f * frame.content_scale;
+    const MapView view = fit_map(island_->map(), {margin, margin, frame.display_size.x - 2 * margin,
+                                               frame.display_size.y - 2 * margin});
+    resolve_world_clicks(view, frame.capture_mouse, frame.framebuffer_scale);
     // Time measured before regeneration belongs to the old world.
     advance_simulation(island_->world_generation() == generation_before_ui ? real_seconds : 0.0);
-    tree_inspector_.draw(*island_);
-    if (island_->settings.select_entities && !io.WantCaptureMouse) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-    }
-    ui_.draw_origin_hint(view);
+    ui_.draw_overlays(*island_, view);
 
-    ImGui::Render();
-    // The ImGui renderer backend applies DisplayFramebufferScale itself.
+    ui_.finish_frame();
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
     const SDL_FColor water = terrain_color(Terrain::water);
     SDL_SetRenderDrawColorFloat(renderer_, water.r, water.g, water.b, water.a);
     SDL_RenderClear(renderer_);
-    SDL_SetRenderScale(renderer_, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+    SDL_SetRenderScale(renderer_, frame.framebuffer_scale.x, frame.framebuffer_scale.y);
     draw_map(renderer_, island_->map(), view);
     trees_.draw(renderer_, island_->map(), view, &particles_);
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
-    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
+    ui_.render(renderer_);
     SDL_RenderPresent(renderer_);
 }
 
@@ -166,7 +139,7 @@ void Application::resolve_world_clicks(const MapView& view, bool capture_mouse,
             }
             const auto id = trees_.pick(island_->map(), view, framebuffer_scale, click.position);
             if (island_->settings.select_entities) {
-                tree_inspector_.select(id, click.generation);
+                ui_.select_tree(id, click.generation);
             } else {
                 island_->queue_ignition(id, click.generation);
             }

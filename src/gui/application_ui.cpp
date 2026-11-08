@@ -1,20 +1,60 @@
 #include "application_ui.h"
 #include "island_controls.h"
 #include "simulation_controls.h"
+#include "island_demo.h"
 #include "map_renderer.h"
 
 #include <SDL3/SDL.h>
+#include <imgui_impl_sdl3.h>
+#include <imgui_impl_sdlrenderer3.h>
 #include <misc/freetype/imgui_freetype.h>
 
 #include <string>
 
-bool ApplicationUi::initialize()
+ApplicationUi::~ApplicationUi()
 {
+    shutdown();
+}
+
+bool ApplicationUi::initialize(SDL_Window* window, SDL_Renderer* renderer)
+{
+    IMGUI_CHECKVERSION();
+    context_ = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     ImGui::StyleColorsDark();
     base_style_ = ImGui::GetStyle();
 
+    if (!load_font()) {
+        return false;
+    }
+    platform_ready_ = ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    renderer_ready_ = platform_ready_ && ImGui_ImplSDLRenderer3_Init(renderer);
+    if (!renderer_ready_) {
+        SDL_Log("ImGui backend initialization failed");
+        return false;
+    }
+    return true;
+}
+
+void ApplicationUi::shutdown()
+{
+    if (renderer_ready_) {
+        ImGui_ImplSDLRenderer3_Shutdown();
+        renderer_ready_ = false;
+    }
+    if (platform_ready_) {
+        ImGui_ImplSDL3_Shutdown();
+        platform_ready_ = false;
+    }
+    if (context_) {
+        ImGui::DestroyContext(context_);
+        context_ = nullptr;
+    }
+}
+
+bool ApplicationUi::load_font()
+{
     const char* base_path = SDL_GetBasePath();
     if (!base_path) {
         SDL_Log("Failed to locate application directory: %s", SDL_GetError());
@@ -32,11 +72,32 @@ bool ApplicationUi::initialize()
     font_config.PixelSnapH = true;
     font_config.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_MonoHinting |
                                   ImGuiFreeTypeLoaderFlags_Monochrome;
-    if (!io.Fonts->AddFontFromFileTTF(font_path.c_str(), 13.0f, &font_config)) {
+    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(font_path.c_str(), 13.0f, &font_config)) {
         SDL_Log("Failed to load font: %s", font_path.c_str());
         return false;
     }
     return true;
+}
+
+void ApplicationUi::process_event(const SDL_Event& event)
+{
+    ImGui_ImplSDL3_ProcessEvent(&event);
+}
+
+void ApplicationUi::begin_frame(SDL_Window* window)
+{
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+    update_scale(window);
+    ImGui::NewFrame();
+}
+
+GuiFrameState ApplicationUi::frame_state() const
+{
+    const ImGuiIO& io = ImGui::GetIO();
+    return {{io.DisplaySize.x, io.DisplaySize.y},
+            {io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y},
+            ImGui::GetStyle().FontScaleDpi, io.WantCaptureMouse};
 }
 
 void ApplicationUi::update_scale(SDL_Window* window)
@@ -84,6 +145,31 @@ void ApplicationUi::draw(bool& running, IslandDemo& island)
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
+}
+
+void ApplicationUi::select_tree(std::uint64_t tree_id, std::uint64_t generation)
+{
+    tree_inspector_.select(tree_id, generation);
+}
+
+void ApplicationUi::draw_overlays(const IslandDemo& island, const MapView& view)
+{
+    tree_inspector_.draw(island);
+    if (island.settings.select_entities && !ImGui::GetIO().WantCaptureMouse) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+    draw_origin_hint(view);
+}
+
+void ApplicationUi::finish_frame()
+{
+    ImGui::Render();
+}
+
+void ApplicationUi::render(SDL_Renderer* renderer) const
+{
+    // The backend applies DisplayFramebufferScale itself.
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
 }
 
 void ApplicationUi::draw_origin_hint(const MapView& view) const

@@ -48,12 +48,12 @@ target_link_libraries(miniworld_effects PUBLIC glm::glm)
 add_executable(miniworld
     src/main.cpp
     src/application.cpp
-    src/application_ui.cpp
+    src/gui/application_ui.cpp
     src/map_renderer.cpp
-    src/island_controls.cpp
-    src/simulation_controls.cpp
+    src/gui/island_controls.cpp
+    src/gui/simulation_controls.cpp
     src/tree_renderer.cpp
-    src/tree_inspector.cpp
+    src/gui/tree_inspector.cpp
     src/particle_renderer.cpp
     src/fire_effects.cpp
 )

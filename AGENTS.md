@@ -20,6 +20,7 @@
 # Code
 - Use GLM for vectors, coordinates, and geometry.
 - Keep UI, rendering, and game logic separate. Game logic must not depend on SDL or ImGui.
+- Keep application-owned ImGui code in `src/gui/`: windows, menus, styling, input capture, context/backends, and GUI frame handling. Application forwards GUI calls through this layer.
 - Preserve seeded output during readability-only refactors.
 
 # Build

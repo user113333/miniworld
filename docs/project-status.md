@@ -123,10 +123,10 @@ closing/reopening Simulation through View.
 | Files | Responsibility |
 | --- | --- |
 | `main.cpp` | Entry point and top-level exception reporting |
-| `application.*` | Scoped SDL/ImGui ownership, initialization, events and frame orchestration |
-| `application_ui.*`, `island_controls.*` | Menus, controls, font/DPI, origin hint |
-| `simulation_controls.*` | Simulation time, live population counts and interaction tools |
-| `tree_inspector.*` | Read-only selected-tree window, tracked by ID and world generation |
+| `application.*` | Scoped SDL ownership, initialization, events and frame orchestration |
+| `gui/application_ui.*` | ImGui context/backends, frame lifecycle, menus, font/DPI and origin hint |
+| `gui/island_controls.*`, `gui/simulation_controls.*` | Generation settings, simulation controls, counts and tools |
+| `gui/tree_inspector.*` | Read-only selected-tree window, tracked by ID and world generation |
 | `island_demo.*` | World state, settings and generation actions; no UI/rendering |
 | `simulation_clock.*` | Fixed-step simulation time, input validation and world cadence |
 | `world_simulation.*` | Seeded ecology/fire/recovery, stable IDs and occupancy |
@@ -165,12 +165,19 @@ Map drawing applies framebuffer scale once; ImGui's backend handles its own scal
 
 ## Application lifecycle
 
+All application-owned ImGui code lives in `src/gui/`. `ApplicationUi` owns the
+context, backends and tree inspector; Application forwards events and frame calls
+through its GUI interface without accessing ImGui directly.
+The move passed a Debug build, all 15 CTest suites, headless UI interaction checks
+and cleanup checks for normal shutdown and missing-font/sprite startup failures.
+
 `Application` owns one application session. `main` creates it and calls `run`;
 initialization, event polling, and frame drawing are separate private methods.
 World state is created after graphics/assets are ready. Generation and UI logic
 remain in their existing modules; the clock phase adds timing to the frame order above.
 
-The destructor handles both normal shutdown and partial initialization failures:
+The destructor calls `ApplicationUi::shutdown` before releasing SDL resources and
+handles both normal shutdown and partial initialization failures:
 tree textures → initialized ImGui backends → context → SDL renderer → window → SDL.
 Readiness flags guard incomplete startup; top-level exceptions unwind the owner
 before `main` reports failure. No cleanup paths are duplicated in `main`.

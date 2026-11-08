@@ -1,10 +1,9 @@
 #pragma once
 
-#include "application_ui.h"
+#include "gui/application_ui.h"
 #include "island_demo.h"
 #include "fire_effects.h"
 #include "tree_renderer.h"
-#include "tree_inspector.h"
 
 #include <optional>
 
@@ -31,15 +30,11 @@ private:
 
     SDL_Window* window_ = nullptr;
     SDL_Renderer* renderer_ = nullptr;
-    ImGuiContext* imgui_context_ = nullptr;
     bool sdl_ready_ = false;
-    bool imgui_platform_ready_ = false;
-    bool imgui_renderer_ready_ = false;
     bool running_ = false;
 
     ApplicationUi ui_;
     TreeRenderer trees_;
-    TreeInspector tree_inspector_;
     std::optional<IslandDemo> island_;
     ParticleSystem particles_;
     std::vector<FireEmitter> fire_emitters_;
