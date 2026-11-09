@@ -2,6 +2,8 @@
 #include "island_controls.h"
 #include "simulation_controls.h"
 #include "thought_bubbles.h"
+#include "world/navigation.h"
+#include <cmath>
 #include "simulation/simulation.h"
 #include "render/map_renderer.h"
 #include "render/camera.h"
@@ -144,6 +146,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
             ImGui::MenuItem("Island", nullptr, &show_island_window_);
             ImGui::MenuItem("Simulation", nullptr, &show_simulation_window_);
             if (ImGui::MenuItem("Assets", nullptr, asset_browser_.is_open())) asset_browser_.open();
+            if (ImGui::MenuItem("Settlers", nullptr, settlers_window_.is_open())) settlers_window_.open();
             const bool explorer_open = entity_explorer_.is_open();
             if (ImGui::MenuItem("Entity Explorer", nullptr, explorer_open)) entity_explorer_.open();
             ImGui::Separator();
@@ -170,6 +173,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
         draw_simulation_controls(simulation, tool_, show_simulation_window_);
     }
     entity_explorer_.draw(simulation);
+    settlers_window_.draw(simulation, entity_explorer_, tool_);
     asset_browser_.draw(*content_, *textures_);
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
@@ -186,6 +190,8 @@ void ApplicationUi::draw_overlays(const Simulation& simulation, const MapView& v
     if (tool_ == EntityTool::select && !ImGui::GetIO().WantCaptureMouse) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
+    if (tool_ == EntityTool::spawn_settler && !ImGui::GetIO().WantCaptureMouse)
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     draw_origin_hint(view);
     const auto frame = frame_state();
     draw_thought_bubbles(simulation.world().actors(), {view.origin, view.radius, frame.framebuffer_scale});
@@ -233,4 +239,16 @@ void ApplicationUi::draw_origin_hint(const MapView& view) const
     overlay->AddLine(ImVec2(origin.x - arm, origin.y), ImVec2(origin.x + arm, origin.y), color);
     overlay->AddLine(ImVec2(origin.x, origin.y - arm), ImVec2(origin.x, origin.y + arm), color);
     overlay->AddText(ImVec2(origin.x + arm * 2, origin.y), color, "(0, 0)");
+}
+
+void ApplicationUi::spawn_settler_at(Simulation& simulation, const MapView& view, glm::vec2 mouse, std::uint64_t generation)
+{
+    if (tool_ != EntityTool::spawn_settler || ImGui::GetIO().WantCaptureMouse ||
+        !std::isfinite(view.radius) || view.radius <= 0) return;
+    const auto ground = (mouse - view.origin) / view.radius;
+    // Bound conversion before rounding floats to integer hex coordinates.
+    const float bound = 4.0f * (simulation.map().width + simulation.map().height + 1);
+    if (!std::isfinite(ground.x) || !std::isfinite(ground.y) || glm::abs(ground.x) > bound || glm::abs(ground.y) > bound) return;
+    const auto hex = world_hex(ground);
+    settlers_window_.spawn(simulation, {hex, ground - hex_center(hex)}, generation);
 }

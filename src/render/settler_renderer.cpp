@@ -1,4 +1,5 @@
 #include "settler_renderer.h"
+#include <cmath>
 
 bool SettlerRenderer::initialize(TextureCache& textures)
 {
@@ -75,4 +76,24 @@ void SettlerRenderer::draw(SDL_Renderer* renderer, const Entry& entry) const
     const SDL_FRect destination{x, p.y, size.x, size.y};
     SDL_RenderTextureRotated(renderer, animation_->frames[entry.frame]->texture, nullptr, &destination,
                              0, nullptr, entry.flipped ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+}
+
+std::optional<ActorSceneEntry> SettlerRenderer::hit(const ActorView& actor, const ActorSceneView& view, glm::vec2 mouse) const
+{
+    if (!animation_ || !actor.settler || !std::isfinite(view.radius) || view.radius <= 0 ||
+        !std::isfinite(view.framebuffer_scale.x) || view.framebuffer_scale.x <= 0 ||
+        !std::isfinite(view.framebuffer_scale.y) || view.framebuffer_scale.y <= 0) return {};
+    const auto layout = settler_layout(actor.position, view);
+    std::size_t frame = animation_->clips.at("idle").frames.front();
+    bool flipped = false;
+    const auto found = states_.find(actor.id);
+    if (generation_ == actor.handle.generation && found != states_.end() && !found->second.dead) {
+        const auto& state = found->second;
+        frame = animation_->frame_at(animation_->clips.at(state.clip), last_tick_ * 1000 / 32 - state.started_ms);
+        flipped = state.flipped;
+    }
+    auto minimum = layout.minimum;
+    if (flipped) minimum.x = layout.ground.x - layout.size.x * (18.0f / 32);
+    if (!sprite_hit(animation_->frames[frame]->mask, minimum, layout.size, mouse, flipped)) return {};
+    return ActorSceneEntry{actor.handle, 0, actor.id, 0, layout.ground, minimum, layout.size, false, actor.selectable};
 }

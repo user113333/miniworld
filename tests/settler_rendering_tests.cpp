@@ -58,6 +58,47 @@ void check_depth(SDL_Renderer* renderer, TextureCache& textures, const ActorScen
         else test::expect(back != actual, "depth fixture has no overlap");
     }
 }
+void check_picking(SDL_Renderer* renderer, TextureCache& textures, const ActorSceneView& view)
+{
+    ActorRenderer scene;
+    SettlerRenderer people;
+    test::expect(scene.initialize(textures) && people.initialize(textures), "cannot load picking fixtures");
+    TileMap map{15, 15, 0, std::vector<Terrain>(225, Terrain::grass), {}};
+    auto actor = person(10, {}, SettlerAction::idle);
+    auto layout = settler_layout(actor.position, view);
+    people.prepare({actor}, view, 0, 1);
+    SDL_SetRenderScale(renderer, view.framebuffer_scale.x, view.framebuffer_scale.y);
+    scene.draw(renderer, map, {actor}, {view.origin, view.radius}, nullptr, 0, 1);
+    test::expect(!scene.pick(map, {actor}, {view.origin, view.radius}, view.framebuffer_scale, layout.minimum + glm::vec2{.1f}), "transparent canvas padding is pickable");
+    int hits = 0;
+    for (int y = 0; y < 32; ++y) for (int x = 0; x < 32; ++x) {
+        const auto mouse = layout.minimum + (glm::vec2{x + .5f, y + .5f} / 32.0f) * layout.size;
+        const auto expected = people.hit(actor, view, mouse);
+        const auto picked = scene.pick(map, {actor}, {view.origin, view.radius}, view.framebuffer_scale, mouse);
+        test::expect(picked == (expected ? actor.handle : ActorHandle{}), "scene picking disagrees with settler alpha mask");
+        hits += static_cast<bool>(picked);
+    }
+    test::expect(hits > 0, "settler cannot be selected");
+    ActorView tree{{20, 1}, 20, {{}, {}}, {ActorKind::tree, 0}, true, Tree{}, {}};
+    std::array<ActorSpriteMask, 5> masks{}; masks[0] = textures.load("map/tree1.png")->mask;
+    for (bool foreground_tree : {false, true}) {
+        tree.position.offset.y = foreground_tree ? .1f : -.1f;
+        std::vector<ActorSceneEntry> trees; build_actor_scene(map, {tree}, view, masks, trees);
+        const auto& t = trees.front();
+        int overlap = 0;
+        for (int y = 0; y < 32; ++y) for (int x = 0; x < 32; ++x) {
+            const auto mouse = layout.minimum + (glm::vec2{x + .5f, y + .5f} / 32.0f) * layout.size;
+            if (!people.hit(actor, view, mouse) || !sprite_hit(masks[0], t.minimum, t.size, mouse)) continue;
+            const auto picked = scene.pick(map, {tree, actor}, {view.origin, view.radius}, view.framebuffer_scale, mouse);
+            test::expect(picked == (foreground_tree ? tree.handle : actor.handle), "picking ignores foreground actor depth");
+            ++overlap;
+        }
+        test::expect(overlap > 0, "picking fixtures do not overlap");
+    }
+    actor.selectable = false;
+    test::expect(!scene.pick(map, {actor}, {view.origin, view.radius}, view.framebuffer_scale, layout.ground - glm::vec2{0, 10}), "nonselectable actor was selected");
+    SDL_SetRenderScale(renderer, 1, 1);
+}
 void check(SDL_Window* window, SDL_Renderer* renderer)
 {
     content::Catalog catalog;
@@ -119,6 +160,8 @@ void check(SDL_Window* window, SDL_Renderer* renderer)
     test::expect(settlers.entries().empty(), "regeneration plays old-world deaths");
 
     check_depth(renderer, textures, view);
+    check_picking(renderer, textures, view);
+    check_picking(renderer, textures, {{320, 220}, 55, {1.5f, 1.5f}});
 
     ApplicationUi ui;
     test::expect(ui.initialize(window, renderer, catalog, textures), "cannot create bubble UI");

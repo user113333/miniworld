@@ -1,5 +1,6 @@
 #include "settler.h"
 #include <algorithm>
+#include <flecs.h>
 
 int Inventory::count(ItemType type) const
 {
@@ -33,4 +34,21 @@ bool Inventory::consume(ItemType type)
         return true;
     }
     return false;
+}
+
+flecs::entity create_settler(flecs::world& ecs, ActorId id, ActorPosition position, const Settler& state)
+{
+    return ecs.entity(("Settler " + std::to_string(id)).c_str())
+        .set<ActorIdentity>({id}).set<ActorPosition>(position)
+        .set<ActorAppearance>({ActorKind::settler, 0}).set<Settler>(state).add<Selectable>();
+}
+const char* settler_action_name(SettlerAction action)
+{
+    switch (action) {
+    case SettlerAction::idle: return "Idle";
+    case SettlerAction::wander: return "Wander";
+    case SettlerAction::cut: return "Cut tree";
+    case SettlerAction::plant: return "Plant tree";
+    }
+    return "Unknown";
 }

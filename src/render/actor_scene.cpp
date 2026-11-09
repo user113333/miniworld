@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 
 namespace {
 bool valid_view(const ActorSceneView& view)
@@ -63,18 +64,7 @@ void build_actor_scene(const TileMap& map, const std::vector<ActorView>& actors,
                          ground - glm::vec2{size.x * 0.5f, size.y}, size,
                          actor.tree && actor.tree->burning(), actor.selectable});
     }
-    std::sort(scene.begin(), scene.end(), [](const ActorSceneEntry& a, const ActorSceneEntry& b) {
-        if (a.ground.y != b.ground.y) {
-            return a.ground.y < b.ground.y;
-        }
-        if (a.ground.x != b.ground.x) {
-            return a.ground.x < b.ground.x;
-        }
-        if (a.variant != b.variant) {
-            return a.variant < b.variant;
-        }
-        return a.id < b.id;
-    });
+    std::sort(scene.begin(), scene.end(), actor_depth_less);
 }
 
 ActorHandle pick_actor(const std::vector<ActorSceneEntry>& scene,
@@ -86,16 +76,25 @@ ActorHandle pick_actor(const std::vector<ActorSceneEntry>& scene,
     }
     for (auto position = scene.rbegin(); position != scene.rend(); ++position) {
         const ActorSceneEntry& entry = *position;
-        const glm::vec2 relative = (logical_mouse - entry.minimum) / entry.size;
-        if (relative.x < 0.0f || relative.y < 0.0f || relative.x >= 1.0f || relative.y >= 1.0f) {
-            continue;
-        }
-        const ActorSpriteMask& sprite = sprites[entry.sprite_index];
-        const glm::ivec2 source = glm::ivec2(glm::floor(relative * glm::vec2(sprite.size)));
-        const std::size_t pixel = static_cast<std::size_t>(source.y * sprite.size.x + source.x);
-        if (pixel < sprite.alpha.size() && sprite.alpha[pixel] != 0) {
+        if (sprite_hit(sprites[entry.sprite_index], entry.minimum, entry.size, logical_mouse))
             return entry.selectable ? entry.handle : ActorHandle{};
-        }
     }
     return {};
+}
+
+bool actor_depth_less(const ActorSceneEntry& a, const ActorSceneEntry& b)
+{
+    return std::tie(a.ground.y, a.ground.x, a.variant, a.id) < std::tie(b.ground.y, b.ground.x, b.variant, b.id);
+}
+bool sprite_hit(const ActorSpriteMask& sprite, glm::vec2 minimum, glm::vec2 size, glm::vec2 mouse, bool flipped)
+{
+    if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y) || !std::isfinite(size.x) || !std::isfinite(size.y) ||
+        size.x <= 0 || size.y <= 0 || sprite.size.x <= 0 || sprite.size.y <= 0) return false;
+    const glm::vec2 relative = (mouse - minimum) / size;
+    if (!std::isfinite(relative.x) || !std::isfinite(relative.y)) return false;
+    if (relative.x < 0 || relative.y < 0 || relative.x >= 1 || relative.y >= 1) return false;
+    auto source = glm::ivec2(glm::floor(relative * glm::vec2(sprite.size)));
+    if (flipped) source.x = sprite.size.x - 1 - source.x;
+    const auto pixel = static_cast<std::size_t>(source.y * sprite.size.x + source.x);
+    return pixel < sprite.alpha.size() && sprite.alpha[pixel] != 0;
 }

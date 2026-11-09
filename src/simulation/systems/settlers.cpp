@@ -38,9 +38,11 @@ void finish(Settler& s, bool failed = false)
 }
 }
 
-ActorHandle World::spawn_settler(glm::ivec2 hex)
+ActorHandle World::spawn_settler(glm::ivec2 hex, glm::vec2 offset)
 {
-    if (!walkable(map_, hex)) return {};
+    if (!walkable(map_, hex) || !std::isfinite(offset.x) || !std::isfinite(offset.y) ||
+        std::abs(offset.x) > glm::sqrt(3.0f) / 2 ||
+        std::abs(offset.y) > 1 - std::abs(offset.x) / glm::sqrt(3.0f)) return {};
     const ActorId id = next_actor_id_++;
     Settler s;
     s.random_state = simulation_detail::mix(map_.seed ^ simulation_detail::mix(id));
@@ -49,9 +51,7 @@ ActorHandle World::spawn_settler(glm::ivec2 hex)
     s.dna.people_sensitivity = 0.5f + random_unit(s);
     s.dna.tree_sensitivity = 0.5f + random_unit(s);
     s.next_thought = settler_tick_ + ticks(10 + random_unit(s) * 20);
-    const auto entity = registry().entity().set<ActorIdentity>({id})
-        .set<ActorPosition>({hex, {}}).set<ActorAppearance>({ActorKind::settler, 0})
-        .set<Settler>(s).add<Selectable>();
+    const auto entity = create_settler(registry(), id, {hex, offset}, s);
     identities_[id] = entity.id();
     return {entity.id(), generation_};
 }

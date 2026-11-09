@@ -60,7 +60,15 @@ ActorHandle ActorRenderer::pick(const TileMap& map, const std::vector<ActorView>
                                  glm::vec2 framebuffer_scale, glm::vec2 logical_mouse) const
 {
     build_actor_scene(map, actors, {view.origin, view.radius, framebuffer_scale}, masks_, scene_);
-    return pick_actor(scene_, masks_, logical_mouse);
+    std::optional<ActorSceneEntry> hit;
+    for (const auto& entry : scene_)
+        if (sprite_hit(masks_[entry.sprite_index], entry.minimum, entry.size, logical_mouse)) hit = entry;
+    for (const auto& actor : actors) {
+        if (!map.contains(actor.position.hex)) continue;
+        if (const auto candidate = settlers_.hit(actor, {view.origin, view.radius, framebuffer_scale}, logical_mouse))
+            if (!hit || actor_depth_less(*hit, *candidate)) hit = candidate;
+    }
+    return hit && hit->selectable ? hit->handle : ActorHandle{};
 }
 
 void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::vector<ActorView>& actors,

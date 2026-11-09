@@ -36,10 +36,20 @@ bool real(const PropertyValue& value, float& out)
 
 std::uint64_t World::submit_edit(EntityEdit edit)
 {
+    return submit_command(std::move(edit));
+}
+
+std::uint64_t World::submit_spawn(SpawnSettler spawn)
+{
+    return submit_command(spawn);
+}
+
+std::uint64_t World::submit_command(std::variant<EntityEdit, SpawnSettler> command)
+{
     const auto request = next_edit_request_++;
     // Bound outstanding requests/receipts if a client stops consuming results.
     if (edits_.size() + edit_results_.size() >= 128) return 0;
-    edits_.push_back({request, std::move(edit)});
+    edits_.push_back({request, std::move(command)});
     return request;
 }
 
@@ -63,8 +73,15 @@ void World::flush_edits()
 
 EntityEditResult World::apply_edit(const PendingEdit& pending)
 {
-    const auto& edit = pending.edit;
     const auto reject = [&](const std::string& reason) { return EntityEditResult{pending.request, false, reason}; };
+    if (const auto* spawn = std::get_if<SpawnSettler>(&pending.command)) {
+        if (spawn->generation != generation_) return reject("Spawn belongs to an old world.");
+        if (!contains(map_, spawn->position.hex)) return reject("Spawn lies outside the map.");
+        const auto actor = spawn_settler(spawn->position.hex, spawn->position.offset);
+        if (!actor) return reject("Choose walkable land to spawn a settler.");
+        return {pending.request, true, "Settler spawned.", actor};
+    }
+    const auto& edit = std::get<EntityEdit>(pending.command);
     const auto live = inspect_entity(edit.target);
     if (!live) return reject("Entity was deleted or belongs to an old world. Select a live entity.");
     const auto entity = registry().entity(edit.target.entity);
@@ -135,11 +152,27 @@ EntityEditResult World::apply_edit(const PendingEdit& pending)
         fire.ignition_tick = tick_;
         fire.burnout_tick = tick_ + static_cast<std::uint64_t>(seconds * 32);
     }
+    std::optional<Settler> edited_settler;
+    if (edit.inventory) {
+        const auto* settler = entity.try_get<Settler>();
+        if (!settler) return reject("Inventory editing requires a live settler.");
+        if (!(settler->inventory == edit.inventory->expected)) return reject("Conflict: inventory changed. Revert to reload live values.");
+        auto inventory = edit.inventory->value;
+        for (auto& slot : inventory.slots) {
+            if (slot.quantity < 0 || slot.quantity > 10 ||
+                (slot.type != ItemType::empty && slot.type != ItemType::seeds && slot.type != ItemType::logs) ||
+                (slot.type == ItemType::empty && slot.quantity != 0))
+                return reject("Each inventory slot needs one valid item type and 0–10 units; empty slots need zero units.");
+            if (slot.quantity == 0) slot.type = ItemType::empty;
+        }
+        edited_settler = *settler;
+        edited_settler->inventory = inventory;
+    }
     // No writes until the entire group validates. Supported setters notify Flecs.
     if (move) {
         entity.set<ActorPosition>(position);
         if (const auto* live_settler = entity.try_get<Settler>()) {
-            auto settler = *live_settler;
+            auto settler = edited_settler ? *edited_settler : *live_settler;
             settler.action = SettlerAction::idle;
             settler.remaining_ticks = 32;
             settler.action_ticks = 0;
@@ -148,6 +181,7 @@ EntityEditResult World::apply_edit(const PendingEdit& pending)
             entity.set<Settler>(settler);
         }
     }
+    if (!move && edited_settler) entity.set<Settler>(*edited_settler);
     if (change_appearance) entity.set<ActorAppearance>(appearance);
     if (change_selection) {
         if (selectable) entity.add<Selectable>(); else entity.remove<Selectable>();

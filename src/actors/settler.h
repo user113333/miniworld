@@ -39,3 +39,11 @@ struct Settler {
     std::vector<glm::ivec2> route;
     std::size_t waypoint = 0;
 };
+
+inline bool operator==(const InventorySlot& a, const InventorySlot& b)
+{ return a.type == b.type && a.quantity == b.quantity; }
+inline bool operator==(const Inventory& a, const Inventory& b) { return a.slots == b.slots; }
+
+namespace flecs { struct world; struct entity; }
+flecs::entity create_settler(flecs::world& ecs, ActorId id, ActorPosition position, const Settler& state);
+const char* settler_action_name(SettlerAction action);

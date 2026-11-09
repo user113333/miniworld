@@ -74,6 +74,7 @@ target_include_directories(miniworld_textures PRIVATE ${PROJECT_SOURCE_DIR}/lib/
 target_link_libraries(miniworld_textures PUBLIC miniworld_content miniworld_effects SDL3::SDL3)
 
 add_library(miniworld_gui STATIC
+    src/gui/settlers_window.cpp
     src/gui/thought_bubbles.cpp
     src/gui/application_ui.cpp
     src/gui/asset_browser.cpp
@@ -110,7 +111,7 @@ endforeach()
 include(CTest)
 if(BUILD_TESTING)
     foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures
-                           settlers simulation_clock island_demo world_simulation fire_simulation recovery flecs_world entity_explorer)
+                           settlers settler_interaction simulation_clock island_demo world_simulation fire_simulation recovery flecs_world entity_explorer)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)
@@ -135,6 +136,10 @@ if(BUILD_TESTING)
     target_link_libraries(asset_browser_tests PRIVATE miniworld_gui miniworld_effects)
     add_test(NAME gui.asset_browser COMMAND asset_browser_tests)
     set_tests_properties(gui.asset_browser PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
+    add_executable(settlers_gui_tests tests/settlers_gui_tests.cpp)
+    target_link_libraries(settlers_gui_tests PRIVATE miniworld_gui)
+    add_test(NAME gui.settlers COMMAND settlers_gui_tests)
+    set_tests_properties(gui.settlers PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
     add_executable(entity_explorer_gui_tests tests/entity_explorer_gui_tests.cpp)
     target_link_libraries(entity_explorer_gui_tests PRIVATE miniworld_gui)
     add_test(NAME gui.entity_explorer COMMAND entity_explorer_gui_tests)

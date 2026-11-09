@@ -97,3 +97,11 @@ random idle clips, walk/work, pause, facing, camera scaling, transient death and
 regeneration cleanup. It compares overlapping tree/settler pixels against explicit
 depth order and checks windowless bubble visibility against the thought timer.
 It saves `/tmp/miniworld-settler-render.png` for visual review with SDL's dummy driver.
+
+`world.settler_interaction` checks real Flecs membership/inspection, atomic eight-slot
+inventory edits, validation, conflicts/FIFO, paused spawning, exact click offsets,
+terrain/position rejection and stale handles/generations. `gui.settlers` drives the
+production inventory widgets, Apply/Revert, draft protection, GUI capture, spawn
+clicks, deletion and regeneration. It saves `/tmp/miniworld-settlers-ui.png` for review.
+The settler rendering suite also checks alpha picking and tree occlusion at normal
+and 1.5× framebuffer scales.

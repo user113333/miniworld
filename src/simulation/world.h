@@ -20,7 +20,7 @@ public:
     void update(std::uint64_t tick);
     void step_settlers(std::uint64_t tick);
     void populate_settlers();
-    ActorHandle spawn_settler(glm::ivec2 hex);
+    ActorHandle spawn_settler(glm::ivec2 hex, glm::vec2 offset = {});
     bool enqueue(IgniteActor command);
     std::size_t pending_ignitions() const { return pending_ignitions_.size(); }
 
@@ -39,6 +39,7 @@ public:
     std::vector<EntitySummary> entities() const;
     std::optional<EntityInspection> inspect_entity(EntityHandle handle) const;
     std::uint64_t submit_edit(EntityEdit edit);
+    std::uint64_t submit_spawn(SpawnSettler spawn);
     void flush_edits();
     std::optional<EntityEditResult> take_edit_result(std::uint64_t request);
 
@@ -47,10 +48,11 @@ public:
     void rebuild_occupancy();
 
 private:
-    struct PendingEdit { std::uint64_t request; EntityEdit edit; };
+    struct PendingEdit { std::uint64_t request; std::variant<EntityEdit, SpawnSettler> command; };
     std::vector<PendingEdit> edits_;
     std::vector<EntityEditResult> edit_results_;
     std::uint64_t next_edit_request_ = 1;
+    std::uint64_t submit_command(std::variant<EntityEdit, SpawnSettler> command);
     EntityEditResult apply_edit(const PendingEdit& pending);
 
     struct Runtime;

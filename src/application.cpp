@@ -141,9 +141,13 @@ void Application::draw_frame(double real_seconds)
 void Application::resolve_world_clicks(const MapView& view, bool capture_mouse,
                                       glm::vec2 framebuffer_scale)
 {
-    if (!capture_mouse && (ui_.tool() == EntityTool::select || ui_.tool() == EntityTool::ignite)) {
+    if (!capture_mouse && (ui_.tool() == EntityTool::select || ui_.tool() == EntityTool::ignite || ui_.tool() == EntityTool::spawn_settler)) {
         for (const WorldClick& click : world_clicks_) {
             if (click.generation != simulation_->world_generation()) {
+                continue;
+            }
+            if (ui_.tool() == EntityTool::spawn_settler) {
+                ui_.spawn_settler_at(*simulation_, view, click.position, click.generation);
                 continue;
             }
             const auto actor = actors_.pick(simulation_->map(), simulation_->world().actors(), view,

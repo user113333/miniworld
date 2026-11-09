@@ -6,7 +6,7 @@ Flecs is now the authoritative actor store and executes ordered simulation syste
 Implementation, review and Debug/Release validation are complete and user-approved.
 
 The colony simulation foundation is also complete and approved.
-Settler simulation logic and rendering are implemented; interaction awaits approval.
+All three phases of the approved settlers task are implemented.
 Construction, houses and ships remain deferred.
 Save/load remains a later milestone.
 
@@ -70,9 +70,37 @@ A software-rendered scene with active bubbles was visually reviewed; determinist
 rendering checks cover tag timing, random idle variants, pause, facing, camera
 scaling, death cleanup, regeneration, bubble visibility and overlapping tree depth.
 
-**Phase 3 requires user approval:** scene picking/selection, the Settlers inspector,
-queued inventory editing and click-to-spawn remain unimplemented. No automatic
-replacements, houses, ships, reproduction, food or deferred gameplay was added.
+## Settlers: interaction phase
+
+Phase 3 adds alpha-mask scene picking for settlers in the same depth order as trees,
+including current animation frames, facing, zoom and framebuffer scale. Dead visual
+remnants are not selectable. Selection is shared with Entity Explorer; selecting a
+settler also opens the Settlers window. View → Settlers reopens it, and Simulation
+shows a live population count. The window displays happiness, DNA/preferences,
+action, thought and all eight inventory slots.
+
+Settlers have been Flecs entities since phase 1. Their factory now lives alongside
+actor data in `src/actors/settler.*` and gives them searchable `Settler <actor ID>`
+Flecs names. Entity Explorer now includes a Settler kind filter, searches kind names,
+and displays read-only settler component fields, thoughts, DNA and inventory values
+instead of an opaque layout. Both inspectors use the same versioned entity handle.
+
+Inventory drafts apply atomically through `EntityEdit` with an expected inventory
+snapshot. Domain validation rejects invalid item types, quantities outside 0–10 and
+nonzero empty slots; zero quantities canonicalize to empty. Concurrent harvesting,
+planting or another edit conflicts rather than overwriting live inventory. Revert
+reloads live slots; the shared selection-discard prompt also protects inventory
+drafts. Deleted settlers and regeneration clear stale forms and requests safely.
+
+Spawn settler is an exclusive tool in Simulation and Settlers. It queues the exact
+clicked position and world generation in the same FIFO as entity edits. Commands
+flush at the existing frame boundary, including while paused; water, unknown future
+terrain, out-of-map/invalid positions and old-world clicks are rejected. New settlers
+receive seeded DNA, 500 happiness and empty inventory. GUI capture blocks spawning;
+Escape/cancel and regeneration exit the tool. Successful spawns select the new Flecs
+entity. Spawning never changes tree occupancy or blocks other settlers.
+
+No automatic replacements or deferred gameplay was added.
 
 ## Architecture
 
@@ -179,7 +207,7 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 23 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+All 25 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
 checkpoints for three seeds through 400 simulation seconds, including exact actor
 fire state and recovery. Forest regressions verify persistence for 1,200 seconds
 and no births or regrowth. Existing generation fixtures pass.
@@ -195,6 +223,14 @@ build staging add/remove checks and Debug/Release launches from outside the
 repository pass. Software-rendered previews and synthetic 1.5× DPI were reviewed.
 See [tests/README.md](../tests/README.md) for fixtures and coverage.
 
+The settler interaction suite verifies actual Flecs membership, searchable entity
+summaries/component inspection, eight-slot atomic edits, conflicts/FIFO ordering,
+invalid values, paused commands, exact spawn offsets, terrain rejection and stale
+handles/generations. The production GUI suite drives inventory widgets, Apply/Revert,
+selection protection, capture, click-to-spawn, deletion and regeneration. Picking
+checks compare source alpha and overlapping tree depth at 1× and 1.5× framebuffer
+scales. The Settlers window and eight-slot layout were reviewed via software rendering.
+
 A headless production-frame smoke check passes window close/reopen, pause/resume,
 exclusive tools, captured world clicks, actor selection, paused ignition, 50x fire
 particles and regeneration clearing handles/tools/time/effects. Normal shutdown
@@ -202,10 +238,9 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 
 ## Deferred tasks
 
-- [Settlers](tasks/settlers.md): logic and rendering complete; interaction awaits
-  user approval for phase 3.
-  Ships, multiple islands, settler fire behavior, houses, mountains and reproduction
-  remain outside the approved implementation scope.
+- [Deferred settler features](tasks/settlers.md): ships, multiple islands, settler
+  fire behavior, houses, mountains and reproduction remain outside the completed
+  three-phase implementation scope.
 
 ## Deferred review
 

@@ -158,6 +158,23 @@ std::optional<EntityInspection> World::inspect_entity(EntityHandle handle) const
                 component.detail = "Reflected fields";
             } else component.detail = "Unsupported detail: no reflection for this layout (" + std::to_string(info->size) + " bytes).";
         }
+        if (id == registry().id<Settler>()) {
+            const auto& settler = entity.get<Settler>();
+            const auto add = [&](std::string path, PropertyValue value) {
+                EntityProperty field;
+                field.component = id; field.path = std::move(path); field.value = std::move(value);
+                field.reason = "Simulation-owned; inventory edits are available in the Settlers window.";
+                component.properties.push_back(std::move(field));
+            };
+            add("thought", settler.thought);
+            for (std::size_t i = 0; i < settler.dna.preferences.size(); ++i)
+                add("dna.preferences." + std::to_string(i), static_cast<double>(settler.dna.preferences[i]));
+            for (std::size_t i = 0; i < settler.inventory.slots.size(); ++i) {
+                const auto prefix = "inventory." + std::to_string(i) + ".";
+                add(prefix + "type", static_cast<std::int64_t>(settler.inventory.slots[i].type));
+                add(prefix + "quantity", static_cast<std::int64_t>(settler.inventory.slots[i].quantity));
+            }
+        }
         result.components.push_back(std::move(component));
     });
     // Selectable is an explicitly supported tag adapter, not arbitrary tag editing.

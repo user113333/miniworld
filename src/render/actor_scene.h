@@ -41,3 +41,7 @@ void build_actor_scene(const TileMap& map, const std::vector<ActorView>& actors,
 ActorHandle pick_actor(const std::vector<ActorSceneEntry>& scene,
                         const std::array<ActorSpriteMask, 5>& sprites,
                         glm::vec2 logical_mouse);
+
+bool actor_depth_less(const ActorSceneEntry& a, const ActorSceneEntry& b);
+bool sprite_hit(const ActorSpriteMask& sprite, glm::vec2 minimum, glm::vec2 size,
+                glm::vec2 mouse, bool flipped = false);

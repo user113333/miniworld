@@ -3,6 +3,7 @@
 #include "entity_explorer.h"
 #include "entity_tool.h"
 #include "asset_browser.h"
+#include "settlers_window.h"
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -36,6 +37,8 @@ public:
     GuiFrameState frame_state() const;
     void draw(bool& running, Simulation& simulation);
     void select_actor(ActorHandle actor);
+    void spawn_settler_at(Simulation& simulation, const MapView& view, glm::vec2 mouse, std::uint64_t generation);
+    ActorHandle selected_actor() const { return entity_explorer_.selected(); }
     EntityTool tool() const { return tool_; }
     void cancel_tool() { tool_ = EntityTool::none; }
     void draw_overlays(const Simulation& simulation, const MapView& view);
@@ -54,6 +57,7 @@ private:
     ImGuiStyle base_style_;
     EntityExplorer entity_explorer_;
     AssetBrowser asset_browser_;
+    SettlersWindow settlers_window_;
     content::Catalog* content_ = nullptr;
     TextureCache* textures_ = nullptr;
     std::vector<unsigned char> font_data_;

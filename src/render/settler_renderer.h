@@ -11,6 +11,7 @@ public:
     void prepare(const std::vector<ActorView>& actors, const ActorSceneView& view,
                  std::uint64_t tick, std::uint64_t generation);
     void draw(SDL_Renderer* renderer, const Entry& entry) const;
+    std::optional<ActorSceneEntry> hit(const ActorView& actor, const ActorSceneView& view, glm::vec2 mouse) const;
     const std::vector<Entry>& entries() const { return entries_; }
     const CachedAnimation* animation() const { return animation_; }
 private:

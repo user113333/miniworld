@@ -23,6 +23,14 @@ void register_actor_reflection(flecs::world& world)
         .member(&Tree::decay_ticks, "decay_ticks").member(&Tree::dead_ticks, "dead_ticks")
         .member(&Tree::ignition_tick, "ignition_tick").member(&Tree::burnout_tick, "burnout_tick")
         .member(&Tree::charred, "charred").member(&Tree::growth_ticks, "growth_ticks");
-    world.component<Settler>(); // Domain state is opaque until the dedicated settler inspector.
+    world.component<SettlerAction>();
+    world.component<SettlerDna>()
+        .member(&SettlerDna::speed, "speed")
+        .member(&SettlerDna::people_sensitivity, "people_sensitivity")
+        .member(&SettlerDna::tree_sensitivity, "tree_sensitivity");
+    world.component<Settler>()
+        .member(&Settler::dna, "dna").member(&Settler::happiness, "happiness")
+        .member(&Settler::action, "action").member(&Settler::thought_ticks, "thought_ticks")
+        .member(&Settler::next_thought, "next_thought").member(&Settler::remaining_ticks, "remaining_ticks");
     world.component<Selectable>();
 }

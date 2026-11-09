@@ -35,12 +35,17 @@ void draw_simulation_controls(Simulation& simulation, EntityTool& tool, bool& op
         const auto dead = std::count_if(actors.begin(), actors.end(),
             [](const ActorView& actor) { return actor.tree && actor.tree->charred; });
         ImGui::Text("Trees: %zu", static_cast<std::size_t>(trees));
+        const auto settlers = std::count_if(actors.begin(), actors.end(), [](const ActorView& actor) { return actor.settler.has_value(); });
+        ImGui::Text("Settlers: %zu", static_cast<std::size_t>(settlers));
         ImGui::Text("Charred remains: %zu", static_cast<std::size_t>(dead));
         ImGui::Separator();
         bool select = tool == EntityTool::select;
         if (ImGui::Checkbox("Select entities", &select)) tool = select ? EntityTool::select : EntityTool::none;
         bool ignite = tool == EntityTool::ignite;
         if (ImGui::Checkbox("Ignite trees", &ignite)) tool = ignite ? EntityTool::ignite : EntityTool::none;
+        bool spawn = tool == EntityTool::spawn_settler;
+        if (ImGui::Checkbox("Spawn settler", &spawn)) tool = spawn ? EntityTool::spawn_settler : EntityTool::none;
+        if (spawn) ImGui::TextUnformatted("Click walkable land. Esc exits the tool.");
         bool camera = tool == EntityTool::camera;
         if (ImGui::Checkbox("Camera control (Space)", &camera)) {
             tool = camera ? EntityTool::camera : EntityTool::none;
@@ -49,7 +54,7 @@ void draw_simulation_controls(Simulation& simulation, EntityTool& tool, bool& op
             ImGui::TextUnformatted("Drag to pan. Scroll to zoom. Esc exits.");
         }
         if (tool == EntityTool::select) {
-            ImGui::TextUnformatted("Click a tree to inspect it. Esc exits the tool.");
+            ImGui::TextUnformatted("Click a tree or settler to inspect it. Esc exits the tool.");
         }
         if (tool == EntityTool::ignite) {
             ImGui::TextUnformatted("Click a tree. Esc exits the tool.");

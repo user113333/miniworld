@@ -1,5 +1,6 @@
 #pragma once
 #include "actors/tree.h"
+#include "actors/settler.h"
 #include <optional>
 #include <string>
 #include <variant>
@@ -52,13 +53,16 @@ struct IgniteEdit {
     Tree expected;
     double duration_seconds = 16.0;
 };
+struct InventoryEdit { Inventory expected; Inventory value; };
 struct EntityEdit {
     EntityHandle target;
     std::vector<PropertyEdit> properties;
     std::optional<IgniteEdit> ignite;
+    std::optional<InventoryEdit> inventory;
 };
 struct EntityEditResult {
     std::uint64_t request = 0;
     bool applied = false;
     std::string message;
+    ActorHandle spawned;
 };

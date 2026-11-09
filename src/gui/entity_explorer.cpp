@@ -63,7 +63,7 @@ void EntityExplorer::open() { open_ = true; focus_ = true; next_refresh_ = 0; }
 void EntityExplorer::select(EntityHandle handle)
 {
     if (handle == selected_) { if (handle) open(); return; }
-    if (dirty_) {
+    if (dirty_ || protected_selection_) {
         requested_selection_ = handle;
         open();
         return;
@@ -73,7 +73,7 @@ void EntityExplorer::select(EntityHandle handle)
 void EntityExplorer::switch_selection(EntityHandle handle)
 {
     requested_selection_.reset();
-    selected_ = handle;
+    selected_ = handle; protected_selection_ = false;
     captured_.reset(); staged_.clear(); dirty_ = false; ignite_ = false; message_.clear();
     if (handle) open();
 }
@@ -132,7 +132,7 @@ void EntityExplorer::draw(Simulation& simulation)
     ImGui::InputTextWithHint("Search", "Name, path, Flecs or actor ID", search_, sizeof(search_));
     ImGui::InputTextWithHint("Component", "Component, tag or pair name", component_filter_, sizeof(component_filter_));
     ImGui::SetNextItemWidth(150);
-    ImGui::Combo("Kind", &kind_, "Any\0Tree\0System\0Component\0Module\0Entity\0");
+    ImGui::Combo("Kind", &kind_, "Any\0Tree\0Settler\0System\0Component\0Module\0Entity\0");
     ImGui::SameLine(); ImGui::SetNextItemWidth(150);
     ImGui::Combo("Sort", &sort_, "Full ID\0Name/path\0");
     if (scope_ && !world.entity_alive(scope_)) scope_ = {};
@@ -148,13 +148,13 @@ void EntityExplorer::draw(Simulation& simulation)
     if (ImGui::GetTime() >= next_refresh_) {
         entities_ = world.entities(); next_refresh_ = ImGui::GetTime() + 0.25;
     }
-    static const char* kinds[] = {"", "Tree", "System", "Component", "Module", "Entity"};
+    static const char* kinds[] = {"", "Tree", "Settler", "System", "Component", "Module", "Entity"};
     std::vector<const EntitySummary*> filtered;
     for (const auto& entity : entities_) {
         if (!all_ && !entity.actor_id) continue;
         if (scope_ && entity.parent != scope_) continue;
         if (kind_ && entity.kind != kinds[kind_]) continue;
-        const auto identity = entity.path + " " + std::to_string(entity.handle.entity) + " " +
+        const auto identity = entity.path + " " + entity.kind + " " + std::to_string(entity.handle.entity) + " " +
             (entity.actor_id ? std::to_string(*entity.actor_id) : "");
         if (!contains(identity, search_)) continue;
         if (component_filter_[0] && std::none_of(entity.components.begin(), entity.components.end(),
