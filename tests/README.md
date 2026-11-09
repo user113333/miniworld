@@ -6,13 +6,14 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The sixteen suites cover hex geometry/storage, island invariants, forest placement,
+The eighteen suites cover hex geometry/storage, island invariants, forest placement,
 fixed-seed snapshots, simulation clock accounting and controller pause/reset
 behavior, persistent forests, fire/recovery, CPU particles, sprite picking, shared replay
-and Flecs ownership/identity checks.
+and Flecs ownership/identity checks, plus entity inspection/editing and a
+production GUI explorer smoke test.
 Checks stay active in Release. Domain/effects tests need no SDL or display. The
-renderer suites draw to SDL memory surfaces without a window or display
-driver. No new test library is required.
+renderer suites draw to SDL memory surfaces. The GUI explorer suite uses the
+SDL dummy video driver and a software renderer; no desktop display is needed. No new test library is required.
 Use `-DBUILD_TESTING=OFF` when configuring to omit the test executables.
 The `release` configure/build/test presets run the same checks with optimization.
 
@@ -54,3 +55,13 @@ Keep these checkpoints unchanged during refactors.
 applies fixture edits to real ECS components before running the existing behavior
 assertions through Flecs systems. Its vectors are test data, never runtime actor
 storage. The direct Flecs suite separately checks handles and authoritative state.
+
+## Entity Explorer
+
+`world.entity_explorer` checks all registry categories, generic reflection,
+relationships, read-only policies, atomic edits, conflicts, geometry/occupancy,
+Flecs notifications, scene/picking refresh, paused/running commands and stale IDs.
+`gui.entity_explorer` drives the production ApplicationUi with a 5,000-entity
+list, staged-form protection, Apply/Revert, paused ignition, mouse capture and
+regeneration. Set `EXPLORER_SCREENSHOT` to a BMP path when running this executable
+to capture rendered GUI frames for review.

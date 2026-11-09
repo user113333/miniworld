@@ -158,6 +158,9 @@ void Application::advance_simulation(double real_seconds)
         effects_generation_ = simulation_->world_generation();
     }
     simulation_->accumulate_simulation_time(real_seconds);
+    // Commands can change emitters at a paused frame boundary too.
+    collect_fire_emitters(simulation_->world().actors(), fire_emitters_);
+    particles_.set_emitters(fire_emitters_);
     while (simulation_->step_simulation()) {
         if (simulation_->clock().world_update_due()) {
             collect_fire_emitters(simulation_->world().actors(), fire_emitters_);

@@ -26,6 +26,8 @@ void Simulation::advance_simulation(double real_seconds, bool active)
 
 void Simulation::accumulate_simulation_time(double real_seconds, bool active)
 {
+    // Commit UI commands at the frame boundary, even when paused, without a clock step.
+    world_.flush_edits();
     clock_.accumulate(real_seconds, settings.speed, active);
 }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "actor_inspector.h"
+#include "entity_explorer.h"
 #include "entity_tool.h"
 
 #include <glm/glm.hpp>
@@ -50,7 +50,7 @@ private:
     bool platform_ready_ = false;
     bool renderer_ready_ = false;
     ImGuiStyle base_style_;
-    ActorInspector actor_inspector_;
+    EntityExplorer entity_explorer_;
     EntityTool tool_ = EntityTool::none;
     std::uint64_t world_generation_ = 0;
     float content_scale_ = 0.0f;

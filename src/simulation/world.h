@@ -2,6 +2,7 @@
 
 #include "actors/actor_view.h"
 #include "commands.h"
+#include "entity_inspection.h"
 #include "world/tile_map.h"
 #include <flecs.h>
 #include <memory>
@@ -31,11 +32,24 @@ public:
     std::optional<ActorView> inspect(ActorHandle handle) const;
     std::vector<ActorView> actors() const;
 
+    bool entity_alive(EntityHandle handle) const;
+    std::vector<EntitySummary> entities() const;
+    std::optional<EntityInspection> inspect_entity(EntityHandle handle) const;
+    std::uint64_t submit_edit(EntityEdit edit);
+    void flush_edits();
+    std::optional<EntityEditResult> take_edit_result(std::uint64_t request);
+
     ActorHandle spawn_tree(const TreeSpawn& spawn, const Tree& state);
     bool destroy(ActorHandle handle);
     void rebuild_occupancy();
 
 private:
+    struct PendingEdit { std::uint64_t request; EntityEdit edit; };
+    std::vector<PendingEdit> edits_;
+    std::vector<EntityEditResult> edit_results_;
+    std::uint64_t next_edit_request_ = 1;
+    EntityEditResult apply_edit(const PendingEdit& pending);
+
     struct Runtime;
     std::unique_ptr<Runtime> runtime_;
     TileMap map_{};

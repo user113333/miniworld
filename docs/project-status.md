@@ -12,6 +12,9 @@ Save/load remains a later milestone.
 Tree lifecycle simplification is complete: trees
 start fully grown, die only from fire, and never regrow naturally.
 
+The Entity Explorer is implemented with full-registry browsing, reflection,
+staged domain edits, conflict detection and paused command execution.
+
 ## Architecture
 
 | Files | Responsibility |
@@ -20,11 +23,12 @@ start fully grown, die only from fire, and never regrow naturally.
 | `src/actors/` | Plain shared components, tree fire state, actor factory and read-only views |
 | `src/simulation/simulation.*` | Generation/settings and the authoritative fixed-step clock |
 | `src/simulation/world.*` | Flecs world, component queries, handles, commands, occupancy and ordered systems |
+| `src/simulation/entity_*` | General entity inspection, reflected property schemas and atomic validated edit commands |
 | `src/simulation/systems/` | Deterministic forest, fire, recovery and keyed random sampling |
 | `src/world/` | Terrain/recovery arrays, hex geometry and seeded generation/placement |
 | `src/render/` | SDL terrain/actor/particle drawing and shared GLM sprite layout/picking |
 | `src/effects/` | Bounded CPU particles and the read-only actor-to-fire-emitter adapter |
-| `src/gui/` | All ImGui code, tools, menus, windows, DPI/fonts, backend lifecycle and actor inspector |
+| `src/gui/` | All ImGui code, tools, menus, windows, DPI/fonts, backend lifecycle and entity explorer |
 | `tests/` | Domain, effects, pixel and ECS regressions; fixed seed/runtime fixtures |
 
 `miniworld_world` links GLM and static Flecs, without SDL or ImGui. Its `World`
@@ -68,9 +72,24 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
   physical-pixel sizes. Foreground actors cover background fire groups.
 - Island contains seed, dimensions, initial density and Generate/Regenerate.
   Simulation contains speed/time, pause, live counts and exclusive selection/fire tools.
-  View reopens either window. Escape exits tools; ImGui capture blocks world clicks.
-- Selecting a tree opens a read-only live inspector. Empty clicks clear selection;
-  actor deletion or regeneration closes it. Regeneration resets time, actors,
+  View reopens the windows. Escape exits tools; ImGui capture blocks world clicks.
+- Entities and View → Entity Explorer open/focus a closable full-registry browser.
+  Scene selection opens the same inspector. Search, kind/component filters, stable
+  sorting, clipped lists, parent/child navigation and reference links cover actors,
+  systems, types, modules, prefabs, disabled entities and builtins.
+- Reflected fields show live values; unsupported components remain visible.
+  Staged actor edits support hex/ground position, valid tree appearance variants,
+  selection and coupled ignition/duration. Identity and raw fire timers stay
+  read-only. Trees require empty grass/land and offsets inside the owning hex;
+  burning trees/remains cannot move. New reflected components are inspectable
+  without bespoke GUI code; editing requires a domain adapter.
+- Apply queues a typed FIFO group, validated before mutation at the frame boundary
+  before time accumulation, including while paused. Direct World updates flush at
+  their start. Changed fields conflict against the captured form; failures keep
+  the form for correction. Revert reloads live values; selection changes prompt
+  before discarding staged edits. Deleted/reused entities and regeneration clear
+  stale forms. Occupancy, Flecs notifications, actor views and effects follow edits.
+- Regeneration resets time, actors,
   commands, tools and effects while retaining speed and rejecting old-world clicks.
 - All ImGui lifecycle belongs to ApplicationUi. Shutdown and partial startup failures
   release textures/backends/context before the renderer/window/SDL.
@@ -88,10 +107,15 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 16 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+All 18 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
 checkpoints for three seeds through 400 simulation seconds, including exact actor
 fire state and recovery. Forest regressions verify persistence for 1,200 seconds
 and no births or regrowth. Existing generation fixtures pass.
+The entity explorer suites cover full-registry reflection, scalar/string/enum/GLM
+fields, relationships, grouped validation, conflicts, notifications, scene/picking,
+paused/running boundaries and stale references. A production GUI smoke test covers
+a 5,000-entity clipped list, staged selection protection, Apply/Revert, paused fire,
+input capture and regeneration. The SDL software-rendered window was reviewed.
 See [tests/README.md](../tests/README.md) for fixtures and coverage.
 
 A headless production-frame smoke check passes window close/reopen, pause/resume,
@@ -107,9 +131,6 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 - [Asset management and browser](tasks/asset-management.md): shared content
   catalog/loading, resource staging and an ImGui Assets window with thumbnails,
   search and metadata, accessible from the top bar and View menu.
-- [Flecs entity explorer](tasks/flecs-entity-explorer.md): browse all live entity
-  categories/components and edit supported properties through validated simulation
-  commands, with reflection, paused editing and stale-reference protection.
 
 ## Deferred review
 

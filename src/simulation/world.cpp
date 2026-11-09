@@ -1,4 +1,5 @@
 #include "world.h"
+#include "actors/reflection.h"
 #include "systems/random.h"
 
 #include <algorithm>
@@ -15,6 +16,7 @@ struct World::Runtime {
     explicit Runtime(World& owner)
         : actors(ecs.query<const ActorIdentity, const ActorPosition, const ActorAppearance>())
     {
+        register_actor_reflection(ecs);
         systems[0] = ecs.system<>("PrepareWorldStep").kind(0)
             .run([&owner](flecs::iter&) { owner.prepare_step(); });
         systems[1] = ecs.system<>("RecoverTerrain").kind(0)
@@ -40,6 +42,8 @@ const flecs::world& World::registry() const { return runtime_->ecs; }
 
 void World::reset(TileMap map, const std::vector<TreeSpawn>& trees)
 {
+    edits_.clear();
+    edit_results_.clear();
     map_ = std::move(map);
     for (std::size_t cell = 0; cell < map_.tiles.size() && cell < map_.recovery.size(); ++cell) {
         const auto& recovery = map_.recovery[cell];
@@ -180,6 +184,7 @@ void World::update(std::uint64_t tick)
 {
     if (tick != tick_ + world_ticks)
         throw std::invalid_argument("World updates require successive eight-tick boundaries");
+    flush_edits();
     tick_ = tick;
     // Manual Flecs systems have explicit merge boundaries. Intents were collected
     // before any changes, preserving fire/recovery semantics across tables.

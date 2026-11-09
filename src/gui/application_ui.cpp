@@ -130,10 +130,13 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Island", nullptr, &show_island_window_);
             ImGui::MenuItem("Simulation", nullptr, &show_simulation_window_);
+            const bool explorer_open = entity_explorer_.is_open();
+            if (ImGui::MenuItem("Entity Explorer", nullptr, explorer_open)) entity_explorer_.open();
             ImGui::Separator();
             ImGui::MenuItem("ImGui demo", nullptr, &show_demo_window_);
             ImGui::EndMenu();
         }
+        if (ImGui::Button("Entities")) entity_explorer_.open();
         ImGui::EndMainMenuBar();
     }
 
@@ -151,7 +154,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
     if (show_simulation_window_) {
         draw_simulation_controls(simulation, tool_, show_simulation_window_);
     }
-    actor_inspector_.draw(simulation);
+    entity_explorer_.draw(simulation);
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }
@@ -159,7 +162,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
 
 void ApplicationUi::select_actor(ActorHandle actor)
 {
-    actor_inspector_.select(actor);
+    entity_explorer_.select(actor);
 }
 
 void ApplicationUi::draw_overlays(const Simulation& simulation, const MapView& view)

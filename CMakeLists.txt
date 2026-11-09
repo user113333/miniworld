@@ -32,6 +32,7 @@ target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 target_link_libraries(imgui PRIVATE Freetype::Freetype)
 
 add_library(miniworld_world STATIC
+    src/actors/reflection.cpp
     src/actors/tree.cpp
     src/simulation/systems/forest.cpp
     src/simulation/systems/fire.cpp
@@ -39,6 +40,8 @@ add_library(miniworld_world STATIC
     src/world/island_generator.cpp
     src/world/tree_placement.cpp
     src/simulation/simulation_clock.cpp
+    src/simulation/entity_inspection.cpp
+    src/simulation/entity_edits.cpp
     src/simulation/world.cpp
     src/simulation/simulation.cpp
 )
@@ -62,7 +65,7 @@ add_executable(miniworld
     src/gui/island_controls.cpp
     src/gui/simulation_controls.cpp
     src/render/actor_renderer.cpp
-    src/gui/actor_inspector.cpp
+    src/gui/entity_explorer.cpp
     src/render/particle_renderer.cpp
     src/effects/fire_effects.cpp
 )
@@ -91,7 +94,7 @@ endforeach()
 include(CTest)
 if(BUILD_TESTING)
     foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures
-                           simulation_clock island_demo world_simulation fire_simulation recovery flecs_world)
+                           simulation_clock island_demo world_simulation fire_simulation recovery flecs_world entity_explorer)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)
@@ -101,6 +104,13 @@ if(BUILD_TESTING)
         target_link_libraries(${suite}_tests PRIVATE miniworld_effects)
         add_test(NAME effects.${suite} COMMAND ${suite}_tests)
     endforeach()
+    add_executable(entity_explorer_gui_tests tests/entity_explorer_gui_tests.cpp
+        src/gui/application_ui.cpp src/gui/entity_explorer.cpp
+        src/gui/island_controls.cpp src/gui/simulation_controls.cpp)
+    target_link_libraries(entity_explorer_gui_tests PRIVATE imgui miniworld_world)
+    add_test(NAME gui.entity_explorer COMMAND entity_explorer_gui_tests)
+    set_tests_properties(gui.entity_explorer PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
+    target_link_libraries(entity_explorer_tests PRIVATE miniworld_effects)
     target_link_libraries(particle_system_tests PRIVATE miniworld_world)
     add_executable(fire_integration_tests tests/fire_integration_tests.cpp src/effects/fire_effects.cpp)
     target_link_libraries(fire_integration_tests PRIVATE miniworld_world miniworld_effects)

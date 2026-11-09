@@ -21,6 +21,7 @@ public:
     void accumulate_simulation_time(double real_seconds, bool active = true);
     bool step_simulation();
     bool enqueue(IgniteActor command) { return world_.enqueue(command); }
+    std::uint64_t submit_edit(EntityEdit edit) { return world_.submit_edit(std::move(edit)); }
     std::size_t pending_ignitions() const { return world_.pending_ignitions(); }
     void toggle_pause();
     World& world() { return world_; }
