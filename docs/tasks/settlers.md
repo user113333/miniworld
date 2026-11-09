@@ -69,12 +69,12 @@ Implement **only** the scope below, in order: **1. logic, 2. rendering, 3. ImGui
 
 ## Deferred tasks (do not implement now)
 
-- **Ships:** Settlers can build a ship, board it, and sail on water.
-- **Multiple islands:** Generate more islands and allow unhappy settlers to travel to another island.
-- **Fire behavior:** Happy settlers can extinguish fires; unhappy settlers can ignite trees.
-- **Houses:** Settlers can build houses for up to **5 residents**, with **2 residents optimal** for happiness.
-- **Mountains:** Generate mountain tiles that block settler movement; current navigation must already treat such terrain as impassable if present.
-- **Reproduction and genetics:** Add reproduction and more complex inherited DNA later.
+- [Ships](ships.md)
+- [Multiple islands](multiple-islands.md)
+- [Settler fire behavior](settler-fire.md)
+- [Houses](houses.md)
+- [Mountains](mountains.md)
+- [Reproduction and genetics](reproduction-genetics.md)
 
 ## Done means
 

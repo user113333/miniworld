@@ -91,6 +91,12 @@ nonzero empty slots; zero quantities canonicalize to empty. Concurrent harvestin
 planting or another edit conflicts rather than overwriting live inventory. Revert
 reloads live slots; the shared selection-discard prompt also protects inventory
 drafts. Deleted settlers and regeneration clear stale forms and requests safely.
+If an edit removes the last seed during planting, the action cancels on the next
+32 Hz tick before further movement/work, clears its route and waits one simulation
+second before deciding again. Regression coverage includes both travel and work,
+a remaining-seed control, no tree creation and preservation of unrelated inventory.
+Both full application builds and all four focused settler suites pass in Debug and
+Release after this fix; the full 25-suite baseline was validated at checkpoint 3/3.
 
 Spawn settler is an exclusive tool in Simulation and Settlers. It queues the exact
 clicked position and world generation in the same FIFO as entity edits. Commands
@@ -243,6 +249,14 @@ and missing-font/sprite failures release ImGui and SDL correctly.
   three-phase implementation scope.
 
 ## Deferred review
+
+- Remaining coverage gaps from the focused settlers review (2026-11-09): idle-time
+  pacing on generated islands and alpha picking of mirrored walk/work frames
+  (current picking checks use an unflipped idle frame). The planting cancellation
+  finding is fixed; its regression failed before the fix and passes afterward.
+- Deferred settler features now have six short task files linked from
+  [Settlers](tasks/settlers.md#deferred-tasks-do-not-implement-now); the added house
+  preference/unhappy-departure behavior is preserved in [Houses](tasks/houses.md).
 
 - Native monitor/DPI transitions and minimize/restore require desktop review;
   the dummy SDL driver cannot exercise native window transitions.

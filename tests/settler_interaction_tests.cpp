@@ -67,6 +67,58 @@ void check_registry_and_inventory()
     EntityEdit wrong{world.spawn_tree({{1, 0}, 0, {}}, {})}; wrong.inventory = InventoryEdit{};
     test::expect(!apply(world, wrong).applied, "tree accepted inventory edit");
 }
+void check_planting_seed_removal()
+{
+    for (bool travelling : {true, false}) {
+        World world;
+        world.reset({12, 12, 42, std::vector<Terrain>(144, Terrain::grass), {}}, {});
+        const auto handle = world.spawn_settler({});
+        const auto entity = world.registry().entity(handle.entity);
+        auto settler = entity.get<Settler>();
+        settler.action = SettlerAction::plant;
+        settler.inventory.add(ItemType::seeds, 2);
+        settler.inventory.add(ItemType::logs, 3);
+        settler.destination = travelling ? glm::ivec2{2, 0} : glm::ivec2{};
+        if (travelling) settler.route = {{0, 0}, {1, 0}, {2, 0}};
+        settler.remaining_ticks = 64;
+        entity.set<Settler>(settler);
+        std::uint64_t tick = 0;
+        const auto step = [&] {
+            ++tick;
+            if (tick % 8 == 0) world.update(tick);
+            world.step_settlers(tick);
+        };
+        // Let travel/work start before editing resources through the real queue.
+        for (int i = 0; i < 16; ++i) step();
+        const auto remove_seed = [&] {
+            const auto inventory = entity.get<Settler>().inventory;
+            auto edited = inventory;
+            test::expect(edited.consume(ItemType::seeds), "seed-removal fixture has no seed");
+            EntityEdit edit{handle}; edit.inventory = InventoryEdit{inventory, edited};
+            test::expect(apply(world, edit).applied, "seed-removal inventory edit failed");
+        };
+        remove_seed();
+        step();
+        test::expect(entity.get<Settler>().action == SettlerAction::plant,
+                     "removing one seed cancelled planting while another remained");
+        remove_seed();
+        const auto before = entity.get<ActorPosition>();
+        step();
+        const auto cancelled = entity.get<Settler>();
+        const auto after = entity.get<ActorPosition>();
+        test::expect(cancelled.action == SettlerAction::idle && cancelled.route.empty(),
+                     "removing the last seed did not cancel planting and its route");
+        test::expect(after.hex == before.hex && after.offset == before.offset,
+                     "settler kept moving after losing its last seed");
+        test::expect(cancelled.remaining_ticks == 32, "cancelled planting needs a bounded retry delay");
+        for (int i = 0; i < 32; ++i) step();
+        test::expect(!world.actor_at(world.map().index(settler.destination)), "cancelled planting created a tree");
+        test::expect(entity.get<Settler>().inventory.count(ItemType::seeds) == 0 &&
+                     entity.get<Settler>().inventory.count(ItemType::logs) == 3,
+                     "cancelled planting changed unrelated inventory");
+    }
+}
+
 void check_spawn()
 {
     Simulation simulation;
@@ -117,4 +169,4 @@ void check_spawn()
     test::expect(!world.take_edit_result(stale)->applied, "old-world click spawns after reset");
 }
 }
-int main() { return test::run("Settler interaction", [] { check_registry_and_inventory(); check_spawn(); }); }
+int main() { return test::run("Settler interaction", [] { check_registry_and_inventory(); check_planting_seed_removal(); check_spawn(); }); }

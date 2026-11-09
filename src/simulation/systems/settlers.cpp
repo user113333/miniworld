@@ -150,7 +150,8 @@ void World::advance_settler(ActorPosition& position, Settler& s)
         if (!target || !target->tree || !target->tree->fully_grown() || target->position.hex != s.destination) {
             finish(s, true); return;
         }
-    } else if (s.action == SettlerAction::plant && !plantable(*this, s.destination)) {
+    } else if (s.action == SettlerAction::plant &&
+               (s.inventory.count(ItemType::seeds) == 0 || !plantable(*this, s.destination))) {
         finish(s, true); return;
     }
     if (s.waypoint < s.route.size()) {
