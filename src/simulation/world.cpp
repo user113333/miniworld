@@ -12,11 +12,16 @@ struct World::Runtime {
     flecs::world ecs;
     flecs::query<const ActorIdentity, const ActorPosition, const ActorAppearance> actors;
     std::array<flecs::system, 6> systems;
+    flecs::system settlers;
+    flecs::query<Tree> growing_trees;
 
     explicit Runtime(World& owner)
         : actors(ecs.query<const ActorIdentity, const ActorPosition, const ActorAppearance>())
     {
         register_actor_reflection(ecs);
+        growing_trees = ecs.query_builder<Tree>().with<GrowingTree>().build();
+        settlers = ecs.system<>("SettlerFixedStep").kind(0)
+            .run([&owner](flecs::iter&) { owner.advance_growth(); owner.advance_settlers(); });
         systems[0] = ecs.system<>("PrepareWorldStep").kind(0)
             .run([&owner](flecs::iter&) { owner.prepare_step(); });
         systems[1] = ecs.system<>("RecoverTerrain").kind(0)
@@ -57,6 +62,7 @@ void World::reset(TileMap map, const std::vector<TreeSpawn>& trees)
     runtime_ = std::make_unique<Runtime>(*this);
     ++generation_;
     tick_ = 0;
+    settler_tick_ = 0;
     next_actor_id_ = 1;
     identities_.clear();
     occupancy_.assign(map_.tiles.size(), 0);
@@ -107,6 +113,7 @@ std::optional<ActorView> World::inspect(ActorHandle handle) const
     ActorView view{handle, entity.get<ActorIdentity>().value, *position, *appearance,
                    entity.has<Selectable>(), std::nullopt};
     if (const auto* tree = entity.try_get<Tree>()) view.tree = *tree;
+    if (const auto* settler = entity.try_get<Settler>()) view.settler = *settler;
     return view;
 }
 
@@ -118,6 +125,7 @@ std::vector<ActorView> World::actors() const
         ActorView view{{entity.id(), generation_}, id.value, position, appearance,
                        entity.has<Selectable>(), std::nullopt};
         if (const auto* tree = entity.try_get<Tree>()) view.tree = *tree;
+        if (const auto* settler = entity.try_get<Settler>()) view.settler = *settler;
         views.push_back(view);
     });
     std::sort(views.begin(), views.end(), [](const ActorView& a, const ActorView& b) { return a.id < b.id; });
@@ -131,6 +139,7 @@ ActorHandle World::spawn_tree(const TreeSpawn& spawn, const Tree& state)
     if (occupancy_[cell] != 0) throw std::invalid_argument("Multiple trees occupy one cell");
     const auto id = next_actor_id_++;
     const auto entity = create_tree(registry(), id, spawn, state);
+    if (state.growth_ticks) entity.add<GrowingTree>();
     identities_[id] = entity.id();
     occupancy_[cell] = entity.id();
     return {entity.id(), generation_};
@@ -189,4 +198,22 @@ void World::update(std::uint64_t tick)
     // Manual Flecs systems have explicit merge boundaries. Intents were collected
     // before any changes, preserving fire/recovery semantics across tables.
     for (const auto& system : runtime_->systems) system.run(world_seconds);
+}
+
+void World::step_settlers(std::uint64_t tick)
+{
+    if (tick != settler_tick_ + 1) throw std::invalid_argument("Settlers require successive fixed ticks");
+    settler_tick_ = tick;
+    const auto& system = runtime_->settlers;
+    system.run(SimulationClock::base_step_seconds);
+}
+
+void World::advance_growth()
+{
+    std::vector<flecs::entity> mature;
+    runtime_->growing_trees.each([&](flecs::entity entity, Tree& tree) {
+        if (tree.growth_ticks) --tree.growth_ticks;
+        if (!tree.growth_ticks) mature.push_back(entity);
+    });
+    for (auto entity : mature) entity.remove<GrowingTree>();
 }

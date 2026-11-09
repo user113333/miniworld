@@ -34,6 +34,9 @@ target_link_libraries(imgui PRIVATE Freetype::Freetype)
 add_library(miniworld_world STATIC
     src/actors/reflection.cpp
     src/actors/tree.cpp
+    src/actors/settler.cpp
+    src/world/navigation.cpp
+    src/simulation/systems/settlers.cpp
     src/simulation/systems/forest.cpp
     src/simulation/systems/fire.cpp
     src/simulation/systems/recovery.cpp
@@ -101,7 +104,7 @@ endforeach()
 include(CTest)
 if(BUILD_TESTING)
     foreach(suite IN ITEMS hex_grid island_generator tree_placement seed_fixtures
-                           simulation_clock island_demo world_simulation fire_simulation recovery flecs_world entity_explorer)
+                           settlers simulation_clock island_demo world_simulation fire_simulation recovery flecs_world entity_explorer)
         add_executable(${suite}_tests tests/${suite}_tests.cpp)
         target_link_libraries(${suite}_tests PRIVATE miniworld_world)
         add_test(NAME world.${suite} COMMAND ${suite}_tests)

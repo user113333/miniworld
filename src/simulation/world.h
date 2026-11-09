@@ -18,6 +18,9 @@ public:
 
     void reset(TileMap map, const std::vector<TreeSpawn>& trees);
     void update(std::uint64_t tick);
+    void step_settlers(std::uint64_t tick);
+    void populate_settlers();
+    ActorHandle spawn_settler(glm::ivec2 hex);
     bool enqueue(IgniteActor command);
     std::size_t pending_ignitions() const { return pending_ignitions_.size(); }
 
@@ -62,6 +65,11 @@ private:
     std::vector<IgniteActor> pending_ignitions_;
     std::vector<ActorHandle> decayed_;
 
+    std::uint64_t settler_tick_ = 0;
+    void advance_growth();
+    void advance_settlers();
+    void advance_settler(ActorPosition& position, Settler& settler);
+    void choose_action(const ActorPosition& position, Settler& settler);
     void prepare_step();
     void collect_ignitions();
     void advance_recovery();

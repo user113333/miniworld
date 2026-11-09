@@ -4,7 +4,7 @@
 #include <cstdint>
 
 using ActorId = std::uint64_t;
-enum class ActorKind { tree };
+enum class ActorKind { tree, settler };
 
 // The full Flecs ID guards entity reuse; generation also guards world resets.
 struct ActorHandle {

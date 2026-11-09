@@ -15,6 +15,7 @@ void Simulation::regenerate()
     auto map = generate_island(island_settings.width, island_settings.height, island_settings.seed);
     const auto trees = place_trees(map, island_settings.tree_density);
     world_.reset(std::move(map), trees);
+    world_.populate_settlers();
     clock_.reset();
 }
 
@@ -35,6 +36,7 @@ bool Simulation::step_simulation()
 {
     if (!clock_.step()) return false;
     if (clock_.world_update_due()) world_.update(clock_.ticks());
+    world_.step_settlers(clock_.ticks());
     return true;
 }
 

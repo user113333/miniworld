@@ -1,6 +1,7 @@
 #include "world.h"
 #include "tuning.h"
 #include "systems/random.h"
+#include "world/navigation.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -97,8 +98,8 @@ EntityEditResult World::apply_edit(const PendingEdit& pending)
                     appearance.variant = static_cast<unsigned>(*value); valid = true;
                 }
             } else if (change.path == "kind") {
-                if (const auto* value = std::get_if<std::int64_t>(&change.value); value && *value == 0) {
-                    appearance.kind = ActorKind::tree; valid = true;
+                if (const auto* value = std::get_if<std::int64_t>(&change.value); value && *value == static_cast<std::int64_t>(old_appearance->kind)) {
+                    appearance.kind = old_appearance->kind; valid = true;
                 }
             }
         } else if (change.component == registry().id<Selectable>() && change.path == "selectable") {
@@ -113,6 +114,7 @@ EntityEditResult World::apply_edit(const PendingEdit& pending)
         const auto offset = glm::abs(position.offset);
         if (!std::isfinite(offset.x) || !std::isfinite(offset.y) || offset.x > glm::sqrt(3.0f) / 2 ||
             offset.y > 1.0f - offset.x / glm::sqrt(3.0f)) return reject("Ground offset is outside its hexagon.");
+        if (entity.has<Settler>() && !walkable(map_, position.hex)) return reject("Settlers require walkable terrain.");
         if (live->tree) {
             if (live->tree->burning() || live->tree->charred) return reject("Burning trees and charred remains cannot move.");
             const int cell = map_.index(position.hex);
@@ -134,7 +136,18 @@ EntityEditResult World::apply_edit(const PendingEdit& pending)
         fire.burnout_tick = tick_ + static_cast<std::uint64_t>(seconds * 32);
     }
     // No writes until the entire group validates. Supported setters notify Flecs.
-    if (move) entity.set<ActorPosition>(position);
+    if (move) {
+        entity.set<ActorPosition>(position);
+        if (const auto* live_settler = entity.try_get<Settler>()) {
+            auto settler = *live_settler;
+            settler.action = SettlerAction::idle;
+            settler.remaining_ticks = 32;
+            settler.action_ticks = 0;
+            settler.route.clear();
+            settler.target = {};
+            entity.set<Settler>(settler);
+        }
+    }
     if (change_appearance) entity.set<ActorAppearance>(appearance);
     if (change_selection) {
         if (selectable) entity.add<Selectable>(); else entity.remove<Selectable>();

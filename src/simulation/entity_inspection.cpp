@@ -16,7 +16,7 @@ EntitySummary summary(const World& world, flecs::entity entity)
     result.path = entity_label(world.registry(), entity.id());
     if (const auto* actor = entity.try_get<ActorIdentity>()) result.actor_id = actor->value;
     if (const auto* appearance = entity.try_get<ActorAppearance>())
-        result.kind = appearance->kind == ActorKind::tree ? "Tree" : "Unknown actor";
+        result.kind = appearance->kind == ActorKind::tree ? "Tree" : "Settler";
     else if (entity.has(flecs::System)) result.kind = "System";
     else if (entity.has<flecs::Component>()) result.kind = "Component";
     else if (entity.has(flecs::Module)) result.kind = "Module";

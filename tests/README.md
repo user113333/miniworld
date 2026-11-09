@@ -84,3 +84,9 @@ Root CMake stages all development resources, including sources/licenses. An
 add/remove PNG build check confirms no filename list or stale staging is needed;
 Debug/Release application smoke launches from `/tmp` confirm working-directory
 independence. Native monitor/DPI transitions still require desktop review.
+
+`settlers_tests` covers seeded population/DNA, separate terrain-only movement,
+bounded A*, smooth route following and invalidation, elapsed idle pacing,
+autonomous activities, inventory overflow, exclusive harvesting/planting,
+exact sapling growth (including between world-rule ticks), fire interruption,
+timed thoughts, happiness/death, pause/speed/inactivity and regeneration.

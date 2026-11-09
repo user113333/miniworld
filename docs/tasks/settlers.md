@@ -1,201 +1,85 @@
-# Settlers, construction and sailing
+# Settlers
 
-Status: draft plan; no gameplay changes implemented.
+Status: **approved gameplay specification; not yet implemented**.
 
-Confirmed name: **settlers**.
+Implement **only** the scope below, in order: **1. logic, 2. rendering, 3. ImGui**. Complete and test one phase before starting the next. Do not introduce houses, ships, reproduction, food, or other features from the old settlers plan.
 
-## Goal and scope
+## 1. Simulation logic (first)
 
-Introduce autonomous people who gather resources, establish a home and can build
-and travel aboard a ship. Complete this as small milestones, each playable and
-validated before starting the next.
+### Settlers and movement
 
-- Settlers choose their own actions using simulation-owned AI.
-- Each settler has an inventory and can cut down trees to obtain wood.
-- Having enough food is a prerequisite for building a house. Wood supplies the
-  building material; the food source and consumption rule need agreement below.
-- Houses can catch fire and burn down, including fire spreading from trees.
-- Settlers move continuously through world space using pathfinding. They are
-  not restricted to tile centers or movement in discrete tile-sized steps.
-- Add mountain terrain that settlers cannot walk across.
-- Settlers can build a ship, board it, travel over water and disembark on land.
-- Support sailing around the current island. Multiple islands are future work.
-- Hunger and health are future features. Do not add hunger meters, food decay,
-  starvation, health points or settler damage/death in this task.
+- Generate **3 settlers** at random, valid, separate positions on the current island. Each begins with **500/1000 happiness** and an **empty inventory**.
+- Use continuous world-space positions: settlers move freely within and between hexes, **not in discrete tile-sized steps**.
+- Movement collision depends **only on terrain type**. Water is impassable; mountains will also be impassable when mountain terrain is added later. Settlers may pass through other settlers, trees, and other actors; do not add actor collision or avoidance.
+- Limit wandering and the search for cutting/planting targets to **10 hexes** from the settler's current position.
+- Use a **small, bounded A* search on walkable hexes** for navigation, then follow its waypoints using smooth world-space movement. Do not allow a movement segment to cross blocked terrain. Reuse a route until it becomes invalid; do not pathfind every frame. No navmesh, physics engine, or expensive crowd steering.
+- Each settler's speed is a DNA trait, from **0.5x to 1.5x** the shared base speed.
 
-Tree lifecycle simplification is complete. Removing a healthy tree through
-harvesting extends the current fire-only death rule. Do not restore natural death or
-automatic tree regrowth; settler planting remains future work.
+### Simple DNA and decision-making
 
-## Proposed first version
+- Give every settler a small, seeded set of fixed DNA traits: **movement speed, activity preferences, and sensitivity to nearby settlers/trees**. More complex genetics are deferred.
+- Use a **lightweight weighted-random decision selector plus a small action state machine**, not a planner, behavior-tree framework, or per-frame AI.
+- Available actions: **idle, wander, cut a tree, plant a tree**. Settlers choose for themselves according to their DNA and available targets/resources; there is no forced cutting/planting cycle.
+- Settlers should spend **approximately 80% of simulation time idling**. Measure this by elapsed activity duration, not just the fraction of decisions. Keep inactive settlers cheap to simulate.
+- A settler normally finishes its chosen valid action before choosing another. If a target becomes invalid or unreachable, stop safely and choose again after a bounded delay.
+- Happiness does **not** affect action choice in this version; unhappy fire-setting and island travel are deferred.
 
-These choices keep the first implementation small; they are proposals rather
-than additional approved gameplay requirements.
+### Inventory, cutting and planting
 
-### Inventories and work
+- Personal inventory: **8 slots**, each holding **one item type** and up to **10 units** of that type. Only two item types: **seeds** and **logs**. No shared storage or trading.
+- Cutting a fully grown tree takes **3 seconds** and removes that tree, awarding **2 seeds and 4 logs**. Put in as much as fits; **discard excess** without stopping the cut. Never award the yield twice.
+- Planting takes **2 seconds**, consumes **1 seed**, and places a **growing tree** on any empty, valid grass or land tile in range. Do not add spacing rules between trees.
+- A planted tree becomes fully grown after **60 seconds of simulation time**; only fully grown trees can be cut.
+- Preserve existing forest behavior: **initially generated trees begin fully grown**, trees do **not** reproduce or regrow naturally, and existing fire/charred-terrain behavior remains intact. Growth applies only to planted trees.
+- Ensure two settlers cannot harvest the same tree twice or plant on the same occupied tile. Cancel invalid work cleanly, including when fire removes the target.
 
-- Start with wood and food as integer item quantities in each settler's personal
-  inventory. No shared global stock, trading or storage buildings yet.
-- Configure starting population, inventory limits, recipes, work durations and
-  yields in simulation tuning. Every recipe must fit in a worker's inventory.
-- Cutting takes simulation time and requires being within reach of a healthy,
-  non-burning tree. Remove it and award wood exactly once on completion. Do not
-  turn harvesting into fire damage or leave a charred tile.
-- Reserve the target while working so two settlers cannot harvest the same tree
-  or build over the same site. Release reservations when work ends or fails.
-- Validate the target, reach and inventory space again when work completes.
-  If a target burns, disappears or becomes unreachable, cancel and choose again.
-- Construction takes time. Reserve the recipe resources and site at job start;
-  consume the resources once on completion. Cancellation releases reservations.
-  No unfinished building actor is needed for the first version.
+### Happiness and thoughts
 
-### Autonomous choices
+- Happiness is an integer **0–1000**. It starts at **500**, is capped at **1000**, and when it reaches **0**, the settler is **removed immediately** with its entire inventory (no drops or corpse).
+- Each settler has an occasional **thought every 10–30 simulation seconds**; this is not a continuous happiness adjustment as the settler moves.
+- On an environmental thought, examine nearby settlers and trees within a **5-hex radius**. Comfortable surroundings restore happiness (initial tuning: **+10**); overcrowding lowers it. **Nearby settlers must penalize happiness more strongly than trees**, with severity modified by the settler's DNA sensitivity.
+- Apply the entire happiness change **immediately when the thought occurs**. Keep thresholds and penalty values simple and configurable in simulation tuning; do not build a complex mood system.
+- Thoughts also announce activity decisions (e.g. "I'll rest", "Time to plant", "I'll cut that tree") as well as happiness (e.g. "Too many people here", "I like it here"). Store the **current thought text and its remaining display time** in simulation state, independent of rendering.
+- Every new thought is visible for **10 seconds of simulation time**, then disappears. A newer thought can replace an older one.
 
-Use a small ordered goal selector and an action state machine. A general
-planning framework or external AI service is unnecessary for this milestone.
+### Performance and architecture
 
-Proposed priorities:
+- Integrate with the existing **Flecs** actor registry, GLM positions, deterministic world generation, versioned actor handles, occupancy rules, seeded randomness, and the shared fixed-step clock described in `project-status.md`.
+- Keep movement on the existing **32 Hz** clock; evaluate higher-level actions only when their timer/job requires it, and surroundings only at the scheduled thought times. Pause, speed, and regeneration must affect settlers consistently.
+- Trees use static tile occupancy; settlers are moving actors and must **not** overwrite tree occupancy. Their movement does not block a tile for other settlers.
+- Put actor data in `src/actors/`, simulation systems in `src/simulation/`, terrain/hex helpers in `src/world/`; keep simulation independent of SDL and ImGui.
+- Add focused deterministic tests for navigation, idle-heavy AI, DNA bounds, inventory overflow, exclusive tree cutting, planted-tree growth, timed thoughts, happiness/death, and regeneration. Run the existing Debug/Release build and CTest presets.
 
-1. Leave an unsafe work location and abandon invalid targets.
-2. Finish a valid action instead of changing goals every update.
-3. Obtain missing supplies and build a house if the settler has no home.
-4. Obtain wood and build a ship after establishing a home.
-5. Board an available ship and choose a reachable coastal destination for a
-   short sailing trip; land again rather than generating endless new ships.
-6. Idle when no valid work exists, with bounded retries after relevant changes.
+## 2. Rendering (second)
 
-Keep the goal, current action, target, progress and blocked reason inspectable.
-Use stable actor IDs for ties and reservations, and seeded choices where variety
-is useful. Decisions must not depend on render frames or Flecs iteration order.
-Propose one owned house and one single-passenger ship per settler initially;
-shared households, crews and cooperation can follow later.
+**STOP AND REMIND THE USER:** *You said you will integrate the `.aseprite` reading library yourself before the rendering phase.* Do not choose, implement, or vendor an Aseprite loader on the user's behalf.
 
-### Terrain, pathfinding and continuous movement
+- After that integration, render settlers moving smoothly using the project's existing scene/camera conventions.
+- Draw a small, simple **thought bubble above each settler's head** when they have a current thought; Codex designs its appearance.
+- Use **windowless ImGui drawing** (draw-list overlay, not an ImGui window) for the bubble. It must follow the settler on screen and disappear after 10 simulation seconds.
+- Keep logic independent of visuals. Do not add extra effects or gameplay.
 
-- Add seeded inland mountain patches and a distinct terrain appearance. Exclude
-  mountains from tree placement, construction sites, walking and landing.
-- Spawn settlers on walkable terrain with reachable resources, building space
-  and a shore. A map with no valid spawn must report that condition without
-  placing a settler on a mountain or in water.
-- Use A* over neighboring hexes for route planning, with separate walking and
-  sailing traversal rules. Mountains and water block walking; land and mountains
-  block sailing. Neither mode may leave the map.
-- Treat the route as a navigable corridor. Follow continuous GLM world-space
-  positions and validated waypoints, with safe line-of-sight smoothing where
-  possible. Tile centers are planning aids, not mandatory stopping points.
-- Check the moving body's clearance along every segment, including smoothed
-  segments. Never cut through a mountain corner, shore or building footprint.
-  Work destinations are reachable positions within interaction range.
-- Keep building footprints separate from dynamic actor locations. Multiple
-  settlers can occupy a tile; propose allowing them to pass one another before
-  adding crowd avoidance. Do not block an entire tile just because a settler is
-  standing there.
-- Replan when a route or destination becomes invalid, with bounded search and
-  retries. A blocked goal must not freeze the simulation or teleport the actor.
-- Move settlers and ships at the existing 32 Hz fixed simulation rate; keep
-  higher-level choices/work rules at 4 Hz where appropriate. Use remaining
-  movement distance across waypoints, so speed is independent of route density.
+## 3. ImGui interaction (third)
 
-### Houses and fire
+- Make settlers **clickable/selectable in the scene like trees**, reusing the existing picking/selection and Entity Explorer architecture.
+- Create a **Settlers ImGui window** to inspect the selected settler: happiness, DNA traits, current action/thought, and inventory.
+- Show all **8 inventory slots** and allow the user to change item type/quantity. Validate slot limits (**0–10**) and apply changes through the existing safe, queued edit-command approach; handle deleted settlers/regeneration safely.
+- Add a **spawn-settler tool**: the user activates it in ImGui and **clicks on a valid land location** to spawn a settler there. Water and future mountain locations are invalid. New settlers receive random DNA, 500 happiness, and an empty inventory.
+- Do not add reproduction or automatic population replacement.
 
-- Choose an unoccupied, reachable land site and reserve its footprint and a
-  worker approach location. Prevent construction on water, mountains or an
-  active fire, and prevent overlapping houses or trapping a worker inside one.
-- Record home ownership when construction finishes. Inventory remains personal;
-  a house does not introduce storage or food production implicitly.
-- Extend combustion beyond tree-only queries: trees can ignite houses and
-  burning houses can ignite nearby combustible actors. Manual ignition should
-  also work on houses. Keep staged spread and seeded burn durations.
-- At burnout, remove the house, release its footprint, invalidate stale jobs and
-  clear its owner's home reference. The settler can choose to rebuild when
-  supplies allow. Terrain recovery must not recreate a house.
-- Share fire state/rules where useful while keeping tree and house outcomes
-  explicit. Settlers avoid burning work sites; damage to settlers and fire
-  affecting ships are outside this first version.
+## Deferred tasks (do not implement now)
 
-### Ships and transitions
+- **Ships:** Settlers can build a ship, board it, and sail on water.
+- **Multiple islands:** Generate more islands and allow unhappy settlers to travel to another island.
+- **Fire behavior:** Happy settlers can extinguish fires; unhappy settlers can ignite trees.
+- **Houses:** Settlers can build houses for up to **5 residents**, with **2 residents optimal** for happiness.
+- **Mountains:** Generate mountain tiles that block settler movement; current navigation must already treat such terrain as impassable if present.
+- **Reproduction and genetics:** Add reproduction and more complex inherited DNA later.
 
-- Build from carried wood at a reachable shore, reserving both a land work
-  position and an adjacent, unobstructed water launch position.
-- Start with one passenger. A ship is a separate Flecs actor with a boarding
-  reservation and passenger reference; a settler records the carrier handle.
-- Board only while the ship is alongside reachable shore. Transfer to an
-  explicit aboard state; the ship owns movement while the passenger's displayed
-  position follows it. Never run land movement for the passenger simultaneously.
-- Sail continuously along a valid water route. Select reachable landing points
-  around the current island; do not require a second island to test the feature.
-- Disembark only alongside an accessible, clear land position. If landing is
-  blocked, remain aboard and choose another destination or wait safely.
-- Regeneration clears passengers, routes and reservations along with other
-  actors. Unexpected carrier deletion must resolve the passenger safely; do not
-  leave a dangling handle or place a walking settler in open water.
-- Exclude multi-island generation, docks, ship combat, sinking and crews for now.
+## Done means
 
-## Fit with the current architecture
+1. **Logic:** Three initial settlers behave autonomously, spend most of their time idle, move without tile-step snapping, cut/plant trees, carry resources, think, gain/lose happiness, and die correctly; existing forest/fire behavior still passes tests.
+2. **Rendering:** After the user's Aseprite-library integration, settlers and 10-second thought bubbles are visible without putting GUI dependencies into simulation.
+3. **ImGui:** A settler is selectable, its inventory is editable, and a settler can be spawned by clicking valid terrain.
 
-Flecs remains the authoritative store for trees, settlers, houses and ships.
-Keep components/factories in `src/actors/`, AI, work, navigation and movement
-systems in `src/simulation/`, terrain and hex geometry in `src/world/`, drawing
-in `src/render/`, particles in `src/effects/`, and inspectors/tools in `src/gui/`.
-Game logic uses GLM and has no SDL or ImGui dependency. Keep build definitions
-in the root `CMakeLists.txt`.
-
-The current occupancy array holds one actor per cell and fire assumes that actor
-is a tree. Replace that assumption with explicit static occupancy/reservations
-and queries for combustible actors. Moving actors must not overwrite trees or
-house footprints. Generalize actor value views, selection, drawing and fire
-emitters for the new kinds without creating a second authoritative actor store.
-
-Retain versioned actor handles, stable gameplay IDs and the shared fixed clock.
-Document system order: validate handles/reservations, apply staged fire outcomes,
-choose work and routes, move actors, validate/commit completed actions, then
-refresh occupancy and presentation views. Fire and work targeting the same tree
-must have a deterministic result, never duplicate wood or a destroyed target
-being used to finish construction. Pause and speed affect every system equally.
-
-## Implementation milestones
-
-1. **Terrain and navigation:** mountains, traversal rules, A* and segment
-   clearance tests, including unreachable destinations.
-2. **Settler actors and movement:** valid spawning, continuous movement,
-   read-only inspection and routes on a small deterministic scenario.
-3. **Inventories and tree cutting:** timed work, wood yields, reservations and
-   cancellation; connect autonomous resource choices.
-4. **Food and homes:** resolve food rules, obtain supplies and autonomously
-   construct a house. Inspect goals, inventory and home ownership.
-5. **House fire:** spread between trees and houses, burnout and rebuilding;
-   update effects and selection to handle destruction.
-6. **Ships:** coastal construction, boarding, water navigation, landing and
-   autonomous trips around the current island.
-7. **Integration:** pause/speed/regeneration, resource exhaustion and blocked
-   goals; update project status and intentional generation/runtime fixtures.
-
-## Decisions to settle before the relevant milestone
-
-- Food supply: initial carried provisions only, or a simple gatherable food
-  source? Starting provisions are smaller in scope but finite; depletion must
-  produce a visible blocked goal rather than free resources.
-- House recipe: does sufficient food act as a retained stock requirement or is
-  it consumed as a construction provision? Choose amounts alongside wood costs.
-- Confirm population, personal capacity, ownership/passenger defaults and visual
-  assets before implementing their milestones. Placeholder art is sufficient
-  for simulation validation; hunger and health remain deferred.
-
-## Acceptance and validation
-
-- A deterministic scenario shows settlers choosing work, walking around mountains,
-  cutting trees, receiving wood once and building a house only with enough food
-  and the agreed material costs. Inventory cannot become negative or duplicate.
-- Two workers competing for a target/site cannot both consume it. Fire, target
-  deletion, lost paths and regeneration cancel stale actions and reservations.
-- Continuous paths and smoothed segments respect terrain/building clearance,
-  including at high simulation speed. Unreachable targets do not cause busy loops.
-- A house catches fire from a tree, can spread fire onward, burns down and frees
-  its site. The owner remains alive without introducing health or hunger rules.
-- A settler builds and boards a ship, sails only over water, follows the ship
-  while aboard and lands on accessible land. Blocked landings remain safe.
-- Pause freezes work/movement/fire; replay is independent of frame grouping and
-  actor query order. Regeneration clears jobs, ownership, routes and passengers.
-- Add domain regressions for these behaviors and rendering/picking checks for the
-  new actor kinds. Run root Debug/Release builds and CTest presets per milestone;
-  visually review movement, mountain readability, house fire and boarding.
+**Do not begin a later phase or any deferred task without the user's approval.**

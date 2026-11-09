@@ -1,5 +1,6 @@
 #include "reflection.h"
 #include "tree.h"
+#include "settler.h"
 #include <flecs.h>
 #include <cstddef>
 
@@ -21,6 +22,7 @@ void register_actor_reflection(flecs::world& world)
     world.component<Tree>()
         .member(&Tree::decay_ticks, "decay_ticks").member(&Tree::dead_ticks, "dead_ticks")
         .member(&Tree::ignition_tick, "ignition_tick").member(&Tree::burnout_tick, "burnout_tick")
-        .member(&Tree::charred, "charred");
+        .member(&Tree::charred, "charred").member(&Tree::growth_ticks, "growth_ticks");
+    world.component<Settler>(); // Domain state is opaque until the dedicated settler inspector.
     world.component<Selectable>();
 }

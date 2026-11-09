@@ -6,17 +6,51 @@ Flecs is now the authoritative actor store and executes ordered simulation syste
 Implementation, review and Debug/Release validation are complete and user-approved.
 
 The colony simulation foundation is also complete and approved.
-Settlers, houses, jobs, pathfinding, construction and ships are planned below.
+Settler simulation logic is implemented; rendering and interaction remain gated below.
+Construction, houses and ships remain deferred.
 Save/load remains a later milestone.
 
 Tree lifecycle simplification is complete: trees
-start fully grown, die only from fire, and never regrow naturally.
+start fully grown and never regrow naturally. Settlers can now harvest mature trees.
 
 The Entity Explorer is implemented with full-registry browsing, reflection,
 staged domain edits, conflict detection and paused command execution.
 
 Asset management is implemented with a shared catalog/texture cache, complete
 resource staging and an Assets browser for the actual content.
+
+## Settlers: logic phase
+
+Phase 1 of [Settlers](tasks/settlers.md) is implemented. Simulation regeneration
+creates three seeded settlers at distinct walkable positions, with fixed DNA,
+500 happiness and empty eight-slot inventories. World fixtures remain tree-only;
+`Simulation` populates settlers after resetting the forest. Settlers do not occupy
+static tree cells. Their versioned handles invalidate on deletion/regeneration.
+
+`src/actors/settler.*` holds DNA, actions, thoughts and inventory; bounded radius-ten
+A* and world/hex conversion live in `src/world/navigation.*`; autonomous behavior
+lives in `src/simulation/systems/settlers.cpp`. The manual Flecs settler system runs
+on every shared 32 Hz tick after any due 4 Hz fire/recovery step. Routes are reused,
+follow adjacent cell centers with continuous offsets, and cancel safely when
+terrain or targets become invalid. Queued position edits also cancel old routes.
+All unrecognized terrain types default to impassable for future mountains.
+
+Weighted decisions choose rest, wander, cutting and planting. Idle durations track
+mean active durations to target 80% elapsed idle time (four seeded hour-long tests
+measured 79.5%). Tree work validates again at completion: one harvest awards at
+most two seeds/four logs, overflow is discarded, and occupied planting cancels
+without consuming a seed. Planted saplings alone join the fixed-step growth query
+for exactly sixty seconds; initial trees remain mature and never reproduce.
+Thoughts occur every 10–30 simulation seconds, update happiness immediately and
+replace ten-second text timers. Zero happiness deletes the settler and inventory.
+Thresholds, penalties, radii and shared speed are in `SettlerTuning`.
+
+**Next phase requires user approval.** Before rendering, remind the user:
+“You said you will integrate the `.aseprite` reading library yourself before the
+rendering phase.” Do not implement/select/vendor a loader. Settlers are currently
+invisible; thought bubbles, scene selection, the Settlers inspector, queued inventory
+editing and click-to-spawn belong to phases 2 and 3. No automatic replacements,
+houses, ships, reproduction, food or other deferred behavior has been added.
 
 ## Architecture
 
@@ -60,8 +94,9 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
 - Shared 32 Hz clock, 4 Hz world rules, integer 0–50x slider and pause/resume.
   At most 250 ms real time is admitted per frame: 400 ticks/50 world steps at 50x.
   Pause retains fractional time; minimized/restoration intervals are discarded.
-- Trees start fully grown and persist without fire. Natural births, aging, growth
-  and regrowth are disabled; one tree or charred remnant occupies each tile.
+- Initial trees start fully grown and persist unless burned or harvested. Natural
+  births, aging and regrowth are disabled; only planted trees grow. One tree or
+  charred remnant occupies each tile.
 - Queued ignition, six-neighbor staged spread, seeded burn duration, charred remains
   and a steady muted red burning tint. Supplied sprite image data stays unchanged.
 - Burned terrain stays charred for half its seeded 90–180 second recovery, becomes
@@ -122,7 +157,7 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 21 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+All 22 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
 checkpoints for three seeds through 400 simulation seconds, including exact actor
 fire state and recovery. Forest regressions verify persistence for 1,200 seconds
 and no births or regrowth. Existing generation fixtures pass.
@@ -145,9 +180,10 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 
 ## Deferred tasks
 
-- [Settlers, construction and sailing](tasks/settlers.md): draft plan for autonomous
-  settlers, inventories, tree cutting, houses/fire, mountains, continuous movement
-  and ships. Food rules are open; hunger, health and multiple islands are deferred.
+- [Settlers](tasks/settlers.md): logic complete; rendering awaits the user’s
+  Aseprite integration and approval. Interaction follows rendering approval.
+  Ships, multiple islands, settler fire behavior, houses, mountains and reproduction
+  remain outside the approved implementation scope.
 
 ## Deferred review
 
