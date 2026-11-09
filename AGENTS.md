@@ -3,6 +3,7 @@
 - Make code readable.
 - Split code into files when it improves readability.
 - Keep README.md short and easy for humans to read. Include only essential information.
+- When you get new information that will preserve, put it inside project-status.md
 
 # Usage efficiency
 - Prioritize conserving usage over parallel speed.
