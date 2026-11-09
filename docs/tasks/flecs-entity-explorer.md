@@ -62,7 +62,7 @@ the simulation as a second source of truth.
 - Start with useful actor edits: position, valid appearance variants and
   selection state, plus applicable tree/fire properties through domain rules.
   Use the tree schema present at implementation time; do not reintroduce stages
-  removed by [tree lifecycle simplification](simplify-tree-lifecycle.md).
+  removed by the completed tree lifecycle simplification.
 - Represent coupled state as one coherent edit. For example, ignition and burn
   duration must obey fire rules instead of exposing unrelated raw timestamp
   writes that can create an impossible burning state.

@@ -66,17 +66,15 @@ void World::apply_ignitions()
         auto entity = registry().entity(occupancy_[cell]);
         const auto id = entity.get<ActorIdentity>().value;
         Tree& tree = entity.get_mut<Tree>();
-        const bool dead = tree.stage == TreeStage::dead;
         tree.ignition_tick = tick_;
         tree.burnout_tick = tick_ + duration(map_.seed, id, Sample::burn_duration,
-            dead ? FireTuning::dead_burn_seconds_min : FireTuning::burn_seconds_min,
-            dead ? FireTuning::dead_burn_seconds_max : FireTuning::burn_seconds_max);
+            FireTuning::burn_seconds_min,
+            FireTuning::burn_seconds_max);
     }
 }
 
 void World::burn_down(const ActorIdentity& id, const ActorPosition& position, Tree& tree)
 {
-    tree.stage = TreeStage::dead;
     tree.charred = true;
     tree.burnout_tick = 0;
     tree.dead_ticks = 0;

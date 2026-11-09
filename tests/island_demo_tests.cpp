@@ -74,7 +74,7 @@ void check_live_world_and_initial_density()
     test::expect(island.clock().elapsed_seconds() == 2.0, "Simulation elapsed display is incorrect");
     const test::TreeRecord& tree = island.map().trees.front();
     test::expect(tree.id == original.trees.front().id &&
-                 tree.age_ticks == original.trees.front().age_ticks + 64,
+                 !tree.charred && !tree.burning(),
                  "Controller did not drive living trees at world cadence");
     test::expect(island.world_generation() == generation, "Simulation replaced the whole forest");
     test::expect(island.map().tiles == original.tiles, "Natural forest advancement changed terrain");

@@ -24,9 +24,7 @@ void expect_same_world(const test::MapState& actual, const test::MapState& expec
         test::expect(found != actual_trees.end(), "Effects changed tree occupancy");
         const test::TreeRecord& a = found->second;
         test::expect_same_tree(a, b);
-        test::expect(a.id == b.id && a.stage == b.stage && a.age_ticks == b.age_ticks &&
-                     a.growth_ticks == b.growth_ticks && a.lifespan_ticks == b.lifespan_ticks &&
-                     a.decay_ticks == b.decay_ticks && a.dead_ticks == b.dead_ticks &&
+        test::expect(a.id == b.id && a.decay_ticks == b.decay_ticks && a.dead_ticks == b.dead_ticks &&
                      a.ignition_tick == b.ignition_tick && a.burnout_tick == b.burnout_tick &&
                      a.charred == b.charred, "Effects or frame partition changed live state");
     }

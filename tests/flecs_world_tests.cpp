@@ -33,17 +33,16 @@ std::uint64_t digest(const World& world)
         const auto& t = *actor.tree;
         d.add(actor.id); d.add(actor.position.hex.x); d.add(actor.position.hex.y);
         d.add(actor.appearance.variant); d.real(actor.position.offset.x); d.real(actor.position.offset.y);
-        d.add(static_cast<unsigned>(t.stage)); d.add(t.age_ticks); d.add(t.growth_ticks);
-        d.add(t.lifespan_ticks); d.add(t.decay_ticks); d.add(t.dead_ticks);
+        d.add(t.decay_ticks); d.add(t.dead_ticks);
         d.add(t.ignition_tick); d.add(t.burnout_tick); d.add(t.charred);
     }
     return d.value;
 }
 
-void check_legacy_replay()
+void check_runtime_replay()
 {
     std::ifstream fixture(std::string(TEST_FIXTURE_DIR) + "/flecs_runtime.txt");
-    test::expect(fixture.is_open(), "Cannot open pre-Flecs replay fixture");
+    test::expect(fixture.is_open(), "Cannot open runtime replay fixture");
     for (std::uint32_t seed : {0u, 74129u, 4294967295u}) {
         auto map = generate_island(24, 18, seed);
         const auto spawns = place_trees(map, 1.0f);
@@ -64,7 +63,7 @@ void check_legacy_replay()
                              "Missing replay checkpoint");
                 test::expect(seed == expected_seed && tick == expected_tick, "Replay fixture order changed");
                 test::expect(digest(world) == expected_digest,
-                    "Pre-Flecs state differs at seed " + std::to_string(seed) + " tick " + std::to_string(tick));
+                    "Runtime state differs at seed " + std::to_string(seed) + " tick " + std::to_string(tick));
             }
         }
     }
@@ -89,8 +88,8 @@ void check_handles_and_queries()
     entity.add<MovedTable>();
     test::expect(world.inspect(original)->id == snapshot->id && world.actors().size() == 1,
                  "Moving an actor between ECS tables invalidated selection/query");
-    entity.get_mut<Tree>().age_ticks += 8;
-    test::expect(world.inspect(original)->tree->age_ticks == snapshot->tree->age_ticks + 8,
+    entity.get_mut<Tree>().dead_ticks += 8;
+    test::expect(world.inspect(original)->tree->dead_ticks == snapshot->tree->dead_ticks + 8,
                  "Inspection is not reading authoritative ECS state");
     auto copy = world.actors();
     copy.front().position.hex = {99, 99};
@@ -132,7 +131,7 @@ void check_pause_and_reset()
 int main()
 {
     return test::run("Flecs actor world", [] {
-        check_legacy_replay();
+        check_runtime_replay();
         check_handles_and_queries();
         check_pause_and_reset();
     });

@@ -34,9 +34,9 @@ void check_tint(SDL_Renderer* renderer, SDL_Surface* surface)
                  {{{0, 0}, 0, {}}, {{3, 0}, 0, {}}}};
     map.trees[0].id = 1;
     map.trees[1].id = 2;
-    for (TreeStage stage : {TreeStage::growing, TreeStage::mature, TreeStage::dead}) {
+    for (unsigned variant : {0u, 1u, 2u}) {
         for (test::TreeRecord& tree : map.trees) {
-            tree.stage = stage;
+            tree.variant = variant;
         }
         const auto normal = render(renderer, surface, trees, map);
         map.trees[0].ignition_tick = 8;
@@ -63,10 +63,8 @@ void check_tint(SDL_Renderer* renderer, SDL_Surface* surface)
         test::expect(map.trees[0].ignition_tick == 8 && map.trees[0].burnout_tick == 640,
                      "Rendering changed authoritative fire state");
         map.trees[0].burnout_tick = 0;
-        map.trees[0].charred = true;
         test::expect(render(renderer, surface, trees, map) == normal,
                      "Extinguished tree retained the burning tint");
-        map.trees[0].charred = false;
     }
 }
 

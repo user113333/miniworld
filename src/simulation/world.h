@@ -44,20 +44,16 @@ private:
     ActorId next_actor_id_ = 1;
     std::unordered_map<ActorId, flecs::entity_t> identities_;
     std::vector<flecs::entity_t> occupancy_;
-    std::vector<int> births_;
     std::vector<int> ignitions_;
     std::vector<IgniteActor> pending_ignitions_;
     std::vector<ActorHandle> decayed_;
 
     void prepare_step();
-    void collect_births();
     void collect_ignitions();
     void advance_recovery();
     void apply_ignitions();
     void advance_tree(flecs::entity entity, const ActorIdentity& identity,
                        const ActorPosition& position, Tree& tree);
     void commit_actors();
-    Tree make_lifecycle(ActorId id) const;
-    void grow_tree(int cell);
     void burn_down(const ActorIdentity& identity, const ActorPosition& position, Tree& tree);
 };

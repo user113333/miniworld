@@ -23,9 +23,8 @@ validated before starting the next.
 - Hunger and health are future features. Do not add hunger meters, food decay,
   starvation, health points or settler damage/death in this task.
 
-Complete [tree lifecycle simplification](simplify-tree-lifecycle.md) before the
-harvesting milestone. Removing a healthy tree through harvesting is an intended
-addition to that task's fire-only death rule. Do not restore natural death or
+Tree lifecycle simplification is complete. Removing a healthy tree through
+harvesting extends the current fire-only death rule. Do not restore natural death or
 automatic tree regrowth; settler planting remains future work.
 
 ## Proposed first version

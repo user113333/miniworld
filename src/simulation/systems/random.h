@@ -10,15 +10,7 @@ constexpr std::uint64_t world_ticks = SimulationClock::ticks_per_world_step;
 constexpr double world_seconds = world_ticks * SimulationClock::base_step_seconds;
 
 enum class Sample : std::uint64_t {
-    birth,
-    variant,
-    offset_x,
-    offset_y,
-    growth,
-    lifespan,
-    decay,
-    initial_age,
-    spread,
+    spread = 8,
     burn_duration,
     charred_decay,
     recovery_duration

@@ -56,7 +56,6 @@ void World::reset(TileMap map, const std::vector<TreeSpawn>& trees)
     next_actor_id_ = 1;
     identities_.clear();
     occupancy_.assign(map_.tiles.size(), 0);
-    births_.clear();
     ignitions_.clear();
     pending_ignitions_.clear();
     decayed_.clear();
@@ -69,13 +68,7 @@ void World::reset(TileMap map, const std::vector<TreeSpawn>& trees)
         return map_.index(a.hex) < map_.index(b.hex);
     });
     for (const auto& spawn : ordered) {
-        const auto id = next_actor_id_;
-        Tree tree = make_lifecycle(id);
-        const auto minimum = tree.growth_ticks / world_ticks;
-        const auto maximum = tree.lifespan_ticks * 3 / (5 * world_ticks);
-        tree.age_ticks = (minimum + sample(map_.seed, 0, id, Sample::initial_age)
-                          % (maximum - minimum + 1)) * world_ticks;
-        spawn_tree(spawn, tree);
+        spawn_tree(spawn, Tree{});
     }
     rebuild_occupancy();
 }
@@ -175,14 +168,12 @@ void World::prepare_step()
 {
     rebuild_occupancy();
     collect_ignitions();
-    collect_births();
     decayed_.clear();
 }
 
 void World::commit_actors()
 {
     for (auto handle : decayed_) destroy(handle);
-    for (int cell : births_) grow_tree(cell);
 }
 
 void World::update(std::uint64_t tick)
@@ -191,6 +182,6 @@ void World::update(std::uint64_t tick)
         throw std::invalid_argument("World updates require successive eight-tick boundaries");
     tick_ = tick;
     // Manual Flecs systems have explicit merge boundaries. Intents were collected
-    // before any changes, preserving fire/recovery/birth semantics across tables.
+    // before any changes, preserving fire/recovery semantics across tables.
     for (const auto& system : runtime_->systems) system.run(world_seconds);
 }

@@ -9,12 +9,15 @@ The colony simulation foundation is also complete and approved.
 Settlers, houses, jobs, pathfinding, construction and ships are planned below.
 Save/load remains a later milestone.
 
+Tree lifecycle simplification is complete: trees
+start fully grown, die only from fire, and never regrow naturally.
+
 ## Architecture
 
 | Files | Responsibility |
 | --- | --- |
 | `src/application.*`, `src/main.cpp` | SDL ownership, events, frame orchestration and entry point |
-| `src/actors/` | Plain shared components, tree lifecycle data, actor factory and read-only views |
+| `src/actors/` | Plain shared components, tree fire state, actor factory and read-only views |
 | `src/simulation/simulation.*` | Generation/settings and the authoritative fixed-step clock |
 | `src/simulation/world.*` | Flecs world, component queries, handles, commands, occupancy and ordered systems |
 | `src/simulation/systems/` | Deterministic forest, fire, recovery and keyed random sampling |
@@ -49,15 +52,14 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
 - Shared 32 Hz clock, 4 Hz world rules, integer 0–50x slider and pause/resume.
   At most 250 ms real time is admitted per frame: 400 ticks/50 world steps at 50x.
   Pause retains fractional time; minimized/restoration intervals are discarded.
-- Growing/mature/dead trees, staggered seeded initial ages, habitat-weighted births,
-  natural death/decay and one tree/corpse per tile. Natural death leaves terrain intact.
+- Trees start fully grown and persist without fire. Natural births, aging, growth
+  and regrowth are disabled; one tree or charred remnant occupies each tile.
 - Queued ignition, six-neighbor staged spread, seeded burn duration, charred remains
   and a steady muted red burning tint. Supplied sprite image data stays unchanged.
 - Burned terrain stays charred for half its seeded 90–180 second recovery, becomes
-  weathered earth, then restores the original grass/land. Births wait until a later
-  step; occupancy still blocks them after recovery.
-- World order: snapshot occupancy and ignition/birth intents → existing recovery
-  → apply ignition → lifecycle/burnout → deferred removal/birth commit → occupancy.
+  weathered earth, then restores the original grass/land. Recovery never creates trees.
+- World order: snapshot occupancy and ignition intents → existing recovery
+  → apply ignition → burnout/remains decay → deferred removal commit → occupancy.
   Flecs systems run explicitly from the fixed clock, without a second real-time clock.
 - The independent 4,096-slot particle pool advances at 32 Hz. Flames/smoke/embers
   use stable source IDs, bounded residual tails and grant-based round-robin fairness.
@@ -86,9 +88,10 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 16 CTest suites pass in Debug and Release; both full application builds pass. The new Flecs suite matches all 24 pre-migration
-runtime checkpoints for three seeds through 400 simulation seconds, including
-exact actor state, fire, recovery and regrowth. Existing generation fixtures pass.
+All 16 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+checkpoints for three seeds through 400 simulation seconds, including exact actor
+fire state and recovery. Forest regressions verify persistence for 1,200 seconds
+and no births or regrowth. Existing generation fixtures pass.
 See [tests/README.md](../tests/README.md) for fixtures and coverage.
 
 A headless production-frame smoke check passes window close/reopen, pause/resume,
@@ -98,10 +101,6 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 
 ## Deferred tasks
 
-- [Simplify tree lifecycle](tasks/simplify-tree-lifecycle.md): remove growing/dead
-  stages, natural death and natural growth/regrowth. Trees start fully grown and
-  can die only from fire until settler harvesting is added; planting remains a
-  later milestone.
 - [Settlers, construction and sailing](tasks/settlers.md): draft plan for autonomous
   settlers, inventories, tree cutting, houses/fire, mountains, continuous movement
   and ships. Food rules are open; hunger, health and multiple islands are deferred.

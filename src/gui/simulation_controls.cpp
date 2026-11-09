@@ -32,13 +32,10 @@ void draw_simulation_controls(Simulation& simulation, EntityTool& tool, bool& op
         const auto actors = simulation.world().actors();
         const auto trees = std::count_if(actors.begin(), actors.end(),
             [](const ActorView& actor) { return actor.tree.has_value(); });
-        const auto growing = std::count_if(actors.begin(), actors.end(),
-            [](const ActorView& actor) { return actor.tree && actor.tree->stage == TreeStage::growing; });
         const auto dead = std::count_if(actors.begin(), actors.end(),
-            [](const ActorView& actor) { return actor.tree && actor.tree->stage == TreeStage::dead; });
+            [](const ActorView& actor) { return actor.tree && actor.tree->charred; });
         ImGui::Text("Trees: %zu", static_cast<std::size_t>(trees));
-        ImGui::Text("Saplings: %zu  Dead: %zu", static_cast<std::size_t>(growing),
-                    static_cast<std::size_t>(dead));
+        ImGui::Text("Charred remains: %zu", static_cast<std::size_t>(dead));
         ImGui::Separator();
         bool select = tool == EntityTool::select;
         if (ImGui::Checkbox("Select entities", &select)) tool = select ? EntityTool::select : EntityTool::none;

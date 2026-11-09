@@ -4,13 +4,7 @@
 
 #include <cstdint>
 
-enum class TreeStage { growing, mature, dead };
-
 struct Tree {
-    TreeStage stage = TreeStage::mature;
-    std::uint64_t age_ticks = 0;
-    std::uint64_t growth_ticks = 0;
-    std::uint64_t lifespan_ticks = 0;
     std::uint64_t decay_ticks = 0;
     std::uint64_t dead_ticks = 0;
     std::uint64_t ignition_tick = 0;

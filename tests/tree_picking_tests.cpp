@@ -105,9 +105,9 @@ void check_stages_and_invalid_input()
     auto sprites = opaque_sprites();
     std::vector<ActorSceneEntry> scene;
     const ActorSceneView view{{100, 100}, 10, {1, 1}};
-    for (const auto [stage, expected_sprite] : {
-             std::pair{TreeStage::growing, 3u}, {TreeStage::mature, 2u}, {TreeStage::dead, 4u}}) {
-        map.trees.front().stage = stage;
+    for (const auto [charred, expected_sprite] : {
+             std::pair{false, 2u}, {true, 4u}}) {
+        map.trees.front().charred = charred;
         build_actor_scene(map, view, sprites, scene);
         test::expect(scene.size() == 1 && scene.front().sprite_index == expected_sprite,
                      "Picking does not use the rendered life-stage sprite");

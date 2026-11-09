@@ -43,16 +43,8 @@ void check_fuel_and_burn_down()
     const auto original_terrain = map.tiles;
     test::WorldFixture simulation;
     simulation.reset(map);
-    tree_at(map, {-3, 0}).stage = TreeStage::growing;
-    tree_at(map, {-3, 0}).age_ticks = 0;
-    test::TreeRecord& mature = tree_at(map, {0, 0});
-    mature.age_ticks = mature.lifespan_ticks - 8;
-    test::TreeRecord& dead = tree_at(map, {3, 0});
-    dead.stage = TreeStage::dead;
-    dead.dead_ticks = dead.decay_ticks - 8;
-
     for (const test::TreeRecord& tree : map.trees) {
-        test::expect(simulation.queue_ignition(map, tree.id), "A fuel stage rejected ignition");
+        test::expect(simulation.queue_ignition(map, tree.id), "A healthy tree rejected ignition");
         test::expect(!simulation.queue_ignition(map, tree.id), "Duplicate ignition was queued twice");
         test::expect(!tree.burning(), "Queued ignition changed the frozen world immediately");
     }
@@ -69,23 +61,19 @@ void check_fuel_and_burn_down()
         test::expect(tree.burning() && tree.ignition_tick == 8 && !tree.charred,
                      "Ignition did not begin on the next world update");
         const auto duration = tree.burnout_tick - tree.ignition_tick;
-        const bool dead_fuel = tree.stage == TreeStage::dead;
-        test::expect(duration >= (dead_fuel ? 6 : 12) * 32 &&
-                     duration <= (dead_fuel ? 10 : 20) * 32 && duration % 8 == 0,
+        test::expect(duration >= 12 * 32 &&
+                     duration <= 20 * 32 && duration % 8 == 0,
                      "Burn duration is outside planned bounds");
         test::expect(!simulation.queue_ignition(map, tree.id), "Existing fire accepted a restart");
         last_burnout = std::max(last_burnout, tree.burnout_tick);
     }
-    test::expect(tree_at(map, {0, 0}).stage == TreeStage::mature,
-                 "Natural age death bypassed ignition");
-    test::expect(tree_at(map, {3, 0}).burning(), "Corpse decay bypassed ignition");
     test::expect(map.tiles == original_terrain, "Ignition scorched terrain before burn-down");
 
     advance(simulation, map, tick, last_burnout);
     test::expect(map.trees.size() == 3, "Fuel disappeared before charred decay");
     for (const test::TreeRecord& tree : map.trees) {
         const int cell = map.index(tree.hex);
-        test::expect(tree.stage == TreeStage::dead && tree.charred && !tree.burning(),
+        test::expect(tree.charred && !tree.burning(),
                      "Burn-down did not leave inert charred remains");
         test::expect(tree.decay_ticks >= 15 * 32 && tree.decay_ticks <= 30 * 32,
                      "Charred-remains decay is outside planned bounds");
@@ -194,8 +182,7 @@ void expect_same_world(const test::MapState& first, const test::MapState& second
     for (const auto& [cell, tree] : first_trees) {
         const test::TreeRecord& other = second_trees.at(cell);
         test::expect_same_tree(tree, other);
-        test::expect(tree.id == other.id && tree.stage == other.stage &&
-                     tree.age_ticks == other.age_ticks && tree.dead_ticks == other.dead_ticks &&
+        test::expect(tree.id == other.id && tree.dead_ticks == other.dead_ticks &&
                      tree.decay_ticks == other.decay_ticks && tree.charred == other.charred &&
                      tree.ignition_tick == other.ignition_tick && tree.burnout_tick == other.burnout_tick,
                      "Vector or command order changed fire/lifecycle state");
@@ -249,7 +236,7 @@ void check_order_independence_and_reset()
     test::expect(!reset.trees.front().burning(), "Pre-reset ignition reached a new world");
 }
 
-void check_ineligible_terrain_and_natural_death()
+void check_ineligible_terrain()
 {
     test::MapState map = fuel_map(3, {{0, 0}});
     test::WorldFixture simulation;
@@ -260,12 +247,11 @@ void check_ineligible_terrain_and_natural_death()
                      "Fire accepted fuel on water, sand or already-burned terrain");
     }
     map.tiles[map.index({0, 0})] = Terrain::grass;
-    map.trees.front().age_ticks = map.trees.front().lifespan_ticks - 8;
     simulation.update(map, 8);
-    test::expect(map.trees.front().stage == TreeStage::dead &&
+    test::expect(!map.trees.front().charred &&
                  map.tiles[map.index({0, 0})] == Terrain::grass &&
                  map.recovery[map.index({0, 0})].duration_ticks == 0,
-                 "Natural death scorched terrain");
+                 "Healthy tree changed without fire");
 }
 
 } // namespace
@@ -277,6 +263,6 @@ int main()
         check_staged_spread_and_gaps();
         check_combined_pressure();
         check_order_independence_and_reset();
-        check_ineligible_terrain_and_natural_death();
+        check_ineligible_terrain();
     });
 }

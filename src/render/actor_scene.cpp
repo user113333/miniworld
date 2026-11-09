@@ -18,15 +18,8 @@ std::size_t actor_sprite_index(const ActorView& actor)
 {
     if (actor.appearance.kind != ActorKind::tree || !actor.tree) return 5;
     const Tree& tree = *actor.tree;
-    switch (tree.stage) {
-    case TreeStage::growing:
-        return 3;
-    case TreeStage::mature:
-        return actor.appearance.variant < 3 ? actor.appearance.variant : 5;
-    case TreeStage::dead:
-        return 4;
-    }
-    return 5;
+    if (tree.charred) return 4;
+    return actor.appearance.variant < 3 ? actor.appearance.variant : 5;
 }
 
 float actor_source_pixel_scale(const ActorSceneView& view, int source_width)
