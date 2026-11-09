@@ -6,11 +6,12 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-The eighteen suites cover hex geometry/storage, island invariants, forest placement,
+The twenty-one suites cover hex geometry/storage, island invariants, forest placement,
 fixed-seed snapshots, simulation clock accounting and controller pause/reset
 behavior, persistent forests, fire/recovery, CPU particles, sprite picking, shared replay
 and Flecs ownership/identity checks, plus entity inspection/editing and a
-production GUI explorer smoke test.
+production GUI explorer smoke test, content catalog, shared texture cache and
+production Assets browser checks.
 Checks stay active in Release. Domain/effects tests need no SDL or display. The
 renderer suites draw to SDL memory surfaces. The GUI explorer suite uses the
 SDL dummy video driver and a software renderer; no desktop display is needed. No new test library is required.
@@ -65,3 +66,21 @@ Flecs notifications, scene/picking refresh, paused/running commands and stale ID
 list, staged-form protection, Apply/Revert, paused ignition, mouse capture and
 regeneration. Set `EXPLORER_SCREENSHOT` to a BMP path when running this executable
 to capture rendered GUI frames for review.
+
+## Assets
+
+`content.catalog` checks deterministic normalized keys, metadata/source formats,
+font bytes, explicit roots and load diagnostics. `render.texture_cache` uses a
+software renderer to check texture reuse, dimensions/source alpha, nearest
+sampling, tint restoration, shared actor bindings and partial startup cleanup.
+`gui.asset_browser` uses the production UI with a temporary resource root and
+1,000 extra files. It covers navigation, search/filter/sort, keyboard selection,
+thumbnail size, clipping, hidden selection, input capture, required font failures,
+optional preview errors, reopening and regeneration retaining cached content.
+Set `ASSET_SCREENSHOT` to a path prefix to save review BMPs, including a synthetic
+1.5× DPI layout. The GUI suite uses SDL's dummy driver without a desktop display.
+
+Root CMake stages all development resources, including sources/licenses. An
+add/remove PNG build check confirms no filename list or stale staging is needed;
+Debug/Release application smoke launches from `/tmp` confirm working-directory
+independence. Native monitor/DPI transitions still require desktop review.

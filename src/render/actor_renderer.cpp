@@ -38,45 +38,18 @@ ActorRenderer::~ActorRenderer()
     shutdown();
 }
 
-bool ActorRenderer::initialize(SDL_Renderer* renderer)
+bool ActorRenderer::initialize(TextureCache& textures)
 {
     shutdown();
-    const char* base_path = SDL_GetBasePath();
-    if (!base_path) {
-        SDL_Log("Cannot locate tree sprites: %s", SDL_GetError());
-        return false;
-    }
     for (std::size_t index = 0; index < sprites_.size(); ++index) {
-        const std::string path = std::string(base_path) + "res/map/" + sprite_names[index];
-        SDL_Surface* image = SDL_LoadPNG(path.c_str());
+        const std::string key = std::string("map/") + sprite_names[index];
+        const auto* image = textures.load(key);
         if (!image) {
-            SDL_Log("Cannot load %s: %s", path.c_str(), SDL_GetError());
-            shutdown();
-            return false;
+            SDL_Log("Cannot load required sprite %s: %s", key.c_str(), textures.error().c_str());
+            shutdown(); return false;
         }
-        ActorSpriteMask& mask = masks_[index];
-        mask.size = {image->w, image->h};
-        mask.alpha.resize(static_cast<std::size_t>(image->w * image->h));
-        bool readable = true;
-        for (int y = 0; y < image->h && readable; ++y) {
-            for (int x = 0; x < image->w; ++x) {
-                Uint8 red, green, blue, alpha;
-                if (!SDL_ReadSurfacePixel(image, x, y, &red, &green, &blue, &alpha)) {
-                    readable = false;
-                    break;
-                }
-                mask.alpha[y * image->w + x] = alpha;
-            }
-        }
-        Sprite& sprite = sprites_[index];
-        sprite.texture = readable ? SDL_CreateTextureFromSurface(renderer, image) : nullptr;
-        SDL_DestroySurface(image);
-        if (!sprite.texture || !SDL_SetTextureScaleMode(sprite.texture, SDL_SCALEMODE_NEAREST)
-            || !SDL_SetTextureBlendMode(sprite.texture, SDL_BLENDMODE_BLEND)) {
-            SDL_Log("Cannot create tree texture/mask: %s", SDL_GetError());
-            shutdown();
-            return false;
-        }
+        sprites_[index].texture = image->texture; // Borrowed from the shared cache.
+        masks_[index] = image->mask;
     }
     return true;
 }
@@ -162,9 +135,6 @@ void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::
 void ActorRenderer::shutdown()
 {
     for (Sprite& sprite : sprites_) {
-        if (sprite.texture) {
-            SDL_DestroyTexture(sprite.texture);
-        }
         sprite = {};
     }
     for (ActorSpriteMask& mask : masks_) {

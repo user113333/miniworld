@@ -2,6 +2,7 @@
 
 #include "entity_explorer.h"
 #include "entity_tool.h"
+#include "asset_browser.h"
 
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -27,7 +28,8 @@ public:
     ApplicationUi(const ApplicationUi&) = delete;
     ApplicationUi& operator=(const ApplicationUi&) = delete;
 
-    bool initialize(SDL_Window* window, SDL_Renderer* renderer);
+    bool initialize(SDL_Window* window, SDL_Renderer* renderer,
+                    content::Catalog& content, TextureCache& textures);
     void shutdown();
     void process_event(const SDL_Event& event);
     void begin_frame(SDL_Window* window);
@@ -51,6 +53,10 @@ private:
     bool renderer_ready_ = false;
     ImGuiStyle base_style_;
     EntityExplorer entity_explorer_;
+    AssetBrowser asset_browser_;
+    content::Catalog* content_ = nullptr;
+    TextureCache* textures_ = nullptr;
+    std::vector<unsigned char> font_data_;
     EntityTool tool_ = EntityTool::none;
     std::uint64_t world_generation_ = 0;
     float content_scale_ = 0.0f;

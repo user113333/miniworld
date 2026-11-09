@@ -28,8 +28,12 @@ std::vector<Pixel> render(SDL_Renderer* renderer, SDL_Surface* surface,
 
 void check_tint(SDL_Renderer* renderer, SDL_Surface* surface)
 {
+    content::Catalog content;
+    test::expect(content.initialize(std::filesystem::path(SDL_GetBasePath()) / "res"), content.error());
+    TextureCache textures;
+    textures.initialize(renderer, content);
     ActorRenderer trees;
-    test::expect(trees.initialize(renderer), "Cannot load tree sprites for tint test");
+    test::expect(trees.initialize(textures), "Cannot load tree sprites for tint test");
     test::MapState map{12, 12, 42, std::vector<Terrain>(144, Terrain::grass),
                  {{{0, 0}, 0, {}}, {{3, 0}, 0, {}}}};
     map.trees[0].id = 1;

@@ -3,6 +3,7 @@
 #include "render/map_renderer.h"
 #include "render/particle_renderer.h"
 #include "render/actor_scene.h"
+#include "render/texture_cache.h"
 
 #include <array>
 
@@ -13,7 +14,7 @@ public:
     ActorRenderer(const ActorRenderer&) = delete;
     ActorRenderer& operator=(const ActorRenderer&) = delete;
 
-    bool initialize(SDL_Renderer* renderer);
+    bool initialize(TextureCache& textures);
     void draw(SDL_Renderer* renderer, const TileMap& map, const std::vector<ActorView>& actors,
               const MapView& view,
               const ParticleSystem* particles = nullptr) const;

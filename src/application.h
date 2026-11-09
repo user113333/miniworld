@@ -34,6 +34,8 @@ private:
     bool sdl_ready_ = false;
     bool running_ = false;
 
+    content::Catalog content_;
+    TextureCache textures_;
     ApplicationUi ui_;
     Camera camera_;
     ActorRenderer actors_;

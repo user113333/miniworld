@@ -10,6 +10,7 @@ Application::~Application()
     // Textures and ImGui backends must be released before their SDL renderer.
     actors_.shutdown();
     ui_.shutdown();
+    textures_.shutdown();
     if (renderer_) {
         SDL_DestroyRenderer(renderer_);
     }
@@ -36,10 +37,16 @@ bool Application::initialize()
     }
     SDL_SetRenderVSync(renderer_, 1);
 
-    if (!ui_.initialize(window_, renderer_)) {
+    const char* base = SDL_GetBasePath();
+    if (!base || !content_.initialize(std::filesystem::path(base) / "res")) {
+        SDL_Log("Cannot initialize content: %s", base ? content_.error().c_str() : SDL_GetError());
         return false;
     }
-    if (!actors_.initialize(renderer_)) {
+    textures_.initialize(renderer_, content_);
+    if (!ui_.initialize(window_, renderer_, content_, textures_)) {
+        return false;
+    }
+    if (!actors_.initialize(textures_)) {
         return false;
     }
     simulation_.emplace();

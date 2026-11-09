@@ -15,7 +15,9 @@ public:
         window = SDL_CreateWindow("Explorer review", 1280, 960, SDL_WINDOW_HIDDEN);
         test::expect(window != nullptr, "Cannot create review window");
         renderer = SDL_CreateRenderer(window, "software");
-        test::expect(renderer && ui.initialize(window, renderer), "Cannot initialize production GUI");
+        test::expect(content.initialize(std::filesystem::path(SDL_GetBasePath()) / "res"), content.error());
+        textures.initialize(renderer, content);
+        test::expect(renderer && ui.initialize(window, renderer, content, textures), "Cannot initialize production GUI");
         ImGui::GetIO().IniFilename = nullptr;
         simulation.island_settings.seed = 74129;
         simulation.regenerate();
@@ -23,7 +25,7 @@ public:
     }
     ~Gui()
     {
-        ui.shutdown(); SDL_DestroyRenderer(renderer); SDL_DestroyWindow(window); SDL_Quit();
+        ui.shutdown(); textures.shutdown(); SDL_DestroyRenderer(renderer); SDL_DestroyWindow(window); SDL_Quit();
     }
     void frame()
     {
@@ -49,6 +51,8 @@ public:
     }
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
+    content::Catalog content;
+    TextureCache textures;
     ApplicationUi ui;
     Simulation simulation;
 };

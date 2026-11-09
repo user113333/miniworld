@@ -11,14 +11,18 @@
 #include <misc/freetype/imgui_freetype.h>
 
 #include <string>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 ApplicationUi::~ApplicationUi()
 {
     shutdown();
 }
 
-bool ApplicationUi::initialize(SDL_Window* window, SDL_Renderer* renderer)
+bool ApplicationUi::initialize(SDL_Window* window, SDL_Renderer* renderer,
+                               content::Catalog& content, TextureCache& textures)
 {
+    content_ = &content; textures_ = &textures;
     IMGUI_CHECKVERSION();
     context_ = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -52,29 +56,37 @@ void ApplicationUi::shutdown()
         ImGui::DestroyContext(context_);
         context_ = nullptr;
     }
+    font_data_.clear();
+    content_ = nullptr; textures_ = nullptr;
 }
 
 bool ApplicationUi::load_font()
 {
-    const char* base_path = SDL_GetBasePath();
-    if (!base_path) {
-        SDL_Log("Failed to locate application directory: %s", SDL_GetError());
-        return false;
-    }
-    const std::string font_path = std::string(base_path) + "res/fonts/CozetteVector.ttf";
-    SDL_PathInfo font_info;
-    if (!SDL_GetPathInfo(font_path.c_str(), &font_info)) {
-        SDL_Log("Failed to locate font: %s", SDL_GetError());
-        return false;
+    constexpr const char* key = "fonts/CozetteVector.ttf";
+    auto bytes = content_->font_data(key);
+    if (!bytes) { SDL_Log("Cannot load required font: %s", content_->error().c_str()); return false; }
+    font_data_ = std::move(*bytes);
+    // Validate before ImGui's loader, whose failure path can assert in Debug.
+    FT_Library library = nullptr;
+    FT_Face face = nullptr;
+    const bool valid = FT_Init_FreeType(&library) == 0 &&
+        FT_New_Memory_Face(library, font_data_.data(), static_cast<FT_Long>(font_data_.size()), 0, &face) == 0;
+    if (face) FT_Done_Face(face);
+    if (library) FT_Done_FreeType(library);
+    if (!valid) {
+        content_->report(key, {}, "Invalid font data");
+        SDL_Log("Cannot load required font %s: invalid font data", key); return false;
     }
 
     // Cozette's native grid is 6x13 pixels. Preserve its hard pixel edges.
     ImFontConfig font_config;
     font_config.PixelSnapH = true;
+    font_config.FontDataOwnedByAtlas = false; // Retained until after context destruction.
     font_config.FontLoaderFlags = ImGuiFreeTypeLoaderFlags_MonoHinting |
                                   ImGuiFreeTypeLoaderFlags_Monochrome;
-    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(font_path.c_str(), 13.0f, &font_config)) {
-        SDL_Log("Failed to load font: %s", font_path.c_str());
+    if (!ImGui::GetIO().Fonts->AddFontFromMemoryTTF(font_data_.data(), static_cast<int>(font_data_.size()), 13.0f, &font_config)) {
+        content_->report(key, {}, "ImGui font loading failed");
+        SDL_Log("Cannot load required font %s", key);
         return false;
     }
     return true;
@@ -130,6 +142,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Island", nullptr, &show_island_window_);
             ImGui::MenuItem("Simulation", nullptr, &show_simulation_window_);
+            if (ImGui::MenuItem("Assets", nullptr, asset_browser_.is_open())) asset_browser_.open();
             const bool explorer_open = entity_explorer_.is_open();
             if (ImGui::MenuItem("Entity Explorer", nullptr, explorer_open)) entity_explorer_.open();
             ImGui::Separator();
@@ -137,6 +150,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
             ImGui::EndMenu();
         }
         if (ImGui::Button("Entities")) entity_explorer_.open();
+        if (ImGui::Button("Assets")) asset_browser_.open();
         ImGui::EndMainMenuBar();
     }
 
@@ -155,6 +169,7 @@ void ApplicationUi::draw(bool& running, Simulation& simulation)
         draw_simulation_controls(simulation, tool_, show_simulation_window_);
     }
     entity_explorer_.draw(simulation);
+    asset_browser_.draw(*content_, *textures_);
     if (show_demo_window_) {
         ImGui::ShowDemoWindow(&show_demo_window_);
     }

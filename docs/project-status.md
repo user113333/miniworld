@@ -15,6 +15,9 @@ start fully grown, die only from fire, and never regrow naturally.
 The Entity Explorer is implemented with full-registry browsing, reflection,
 staged domain edits, conflict detection and paused command execution.
 
+Asset management is implemented with a shared catalog/texture cache, complete
+resource staging and an Assets browser for the actual content.
+
 ## Architecture
 
 | Files | Responsibility |
@@ -26,9 +29,10 @@ staged domain edits, conflict detection and paused command execution.
 | `src/simulation/entity_*` | General entity inspection, reflected property schemas and atomic validated edit commands |
 | `src/simulation/systems/` | Deterministic forest, fire, recovery and keyed random sampling |
 | `src/world/` | Terrain/recovery arrays, hex geometry and seeded generation/placement |
-| `src/render/` | SDL terrain/actor/particle drawing and shared GLM sprite layout/picking |
+| `src/content/` | Resource-relative catalog, file metadata/status and font byte access; no SDL or ImGui |
+| `src/render/` | SDL terrain/actor/particle drawing, shared PNG texture/mask cache and GLM layout/picking |
 | `src/effects/` | Bounded CPU particles and the read-only actor-to-fire-emitter adapter |
-| `src/gui/` | All ImGui code, tools, menus, windows, DPI/fonts, backend lifecycle and entity explorer |
+| `src/gui/` | All ImGui code, tools, menus, windows, DPI/fonts, backend lifecycle, entity explorer and asset browser |
 | `tests/` | Domain, effects, pixel and ECS regressions; fixed seed/runtime fixtures |
 
 `miniworld_world` links GLM and static Flecs, without SDL or ImGui. Its `World`
@@ -91,6 +95,17 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
   stale forms. Occupancy, Flecs notifications, actor views and effects follow edits.
 - Regeneration resets time, actors,
   commands, tools and effects while retaining speed and rejecting old-world clicks.
+- Assets and View → Assets open/focus a shared catalog browser with folders,
+  global search, type/name sorting, filters, keyboard navigation and adjustable
+  clipped thumbnail rows. Hidden selections retain their stable resource key.
+  PNG previews preserve aspect, pixel sampling and transparency; unsupported
+  formats expose metadata and optional preview failures stay in the window.
+- Application owns the catalog and texture cache. Resources resolve from the
+  executable's staged `res/`, independent of working directory; complete staging
+  removes stale files on configure/build. The catalog scans once, PNGs decode on
+  demand into shared textures/masks, and regeneration retains presentation assets.
+  GUI-owned font bytes outlive the atlas. Consumers detach before texture cleanup,
+  and textures are freed before their SDL renderer, including partial startup.
 - All ImGui lifecycle belongs to ApplicationUi. Shutdown and partial startup failures
   release textures/backends/context before the renderer/window/SDL.
 
@@ -107,7 +122,7 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 18 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+All 21 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
 checkpoints for three seeds through 400 simulation seconds, including exact actor
 fire state and recovery. Forest regressions verify persistence for 1,200 seconds
 and no births or regrowth. Existing generation fixtures pass.
@@ -116,6 +131,11 @@ fields, relationships, grouped validation, conflicts, notifications, scene/picki
 paused/running boundaries and stale references. A production GUI smoke test covers
 a 5,000-entity clipped list, staged selection protection, Apply/Revert, paused fire,
 input capture and regeneration. The SDL software-rendered window was reviewed.
+Catalog/cache/browser suites cover resource keys, source-only metadata, font
+bytes, decode/texture/mask reuse, optional/required failures, partial startup,
+search/filter/sort, selection, navigation, clipping and GUI input capture. Normal
+build staging add/remove checks and Debug/Release launches from outside the
+repository pass. Software-rendered previews and synthetic 1.5× DPI were reviewed.
 See [tests/README.md](../tests/README.md) for fixtures and coverage.
 
 A headless production-frame smoke check passes window close/reopen, pause/resume,
@@ -128,9 +148,6 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 - [Settlers, construction and sailing](tasks/settlers.md): draft plan for autonomous
   settlers, inventories, tree cutting, houses/fire, mountains, continuous movement
   and ships. Food rules are open; hunger, health and multiple islands are deferred.
-- [Asset management and browser](tasks/asset-management.md): shared content
-  catalog/loading, resource staging and an ImGui Assets window with thumbnails,
-  search and metadata, accessible from the top bar and View menu.
 
 ## Deferred review
 
