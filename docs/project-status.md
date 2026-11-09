@@ -21,7 +21,7 @@ resource staging and an Assets browser for the actual content.
 
 ## Settlers: logic phase
 
-Phase 1 of [Settlers](tasks/settlers.md) is implemented. Simulation regeneration
+Settler simulation is implemented. Simulation regeneration
 creates three seeded settlers at distinct walkable positions, with fixed DNA,
 500 happiness and empty eight-slot inventories. World fixtures remain tree-only;
 `Simulation` populates settlers after resetting the forest. Settlers do not occupy
@@ -43,7 +43,13 @@ without consuming a seed. Planted saplings alone join the fixed-step growth quer
 for exactly sixty seconds; initial trees remain mature and never reproduce.
 Thoughts occur every 10–30 simulation seconds, update happiness immediately and
 replace ten-second text timers. Zero happiness deletes the settler and inventory.
-Thresholds, penalties, radii and shared speed are in `SettlerTuning`.
+DNA movement speed ranges from 0.5× to 1.5× the shared base speed. Cutting takes
+three seconds; planting takes two seconds and one seed on empty grass/land, with
+no spacing rule. Inventories hold only seeds/logs in eight slots of up to ten units.
+Happiness is capped at 1000; environmental thoughts sample a five-hex radius,
+restore ten happiness in comfortable surroundings and penalize nearby settlers
+more strongly than trees, modified by DNA sensitivity. Happiness does not influence
+action choice. Thresholds, penalties, radii and shared speed are in `SettlerTuning`.
 
 ## Settlers: rendering phase
 
@@ -244,9 +250,15 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 
 ## Deferred tasks
 
-- [Deferred settler features](tasks/settlers.md): ships, multiple islands, settler
-  fire behavior, houses, mountains and reproduction remain outside the completed
-  three-phase implementation scope.
+These features remain outside the completed settlers scope and need specification
+and approval before implementation:
+
+- [Ships](tasks/ships.md)
+- [Multiple islands](tasks/multiple-islands.md)
+- [Settler fire behavior](tasks/settler-fire.md)
+- [Houses](tasks/houses.md)
+- [Mountains](tasks/mountains.md)
+- [Reproduction and genetics](tasks/reproduction-genetics.md)
 
 ## Deferred review
 
@@ -254,10 +266,6 @@ and missing-font/sprite failures release ImGui and SDL correctly.
   pacing on generated islands and alpha picking of mirrored walk/work frames
   (current picking checks use an unflipped idle frame). The planting cancellation
   finding is fixed; its regression failed before the fix and passes afterward.
-- Deferred settler features now have six short task files linked from
-  [Settlers](tasks/settlers.md#deferred-tasks-do-not-implement-now); the added house
-  preference/unhappy-departure behavior is preserved in [Houses](tasks/houses.md).
-
 - Native monitor/DPI transitions and minimize/restore require desktop review;
   the dummy SDL driver cannot exercise native window transitions.
 - Full-scene depth and UI-event/DPI smoke checks are currently temporary harnesses;
