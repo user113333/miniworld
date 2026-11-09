@@ -1,4 +1,7 @@
 #include "texture_cache.h"
+#include "aseprite_texture.h"
+
+TextureCache::TextureCache() = default;
 
 CachedImage::~CachedImage() { if (texture) SDL_DestroyTexture(texture); }
 TextureCache::~TextureCache() { shutdown(); }
@@ -6,11 +9,12 @@ void TextureCache::initialize(SDL_Renderer* renderer, content::Catalog& catalog)
 {
     shutdown(); renderer_ = renderer; catalog_ = &catalog;
 }
-void TextureCache::shutdown() { images_.clear(); catalog_ = nullptr; renderer_ = nullptr; error_.clear(); }
+void TextureCache::shutdown() { animations_.clear(); images_.clear(); catalog_ = nullptr; renderer_ = nullptr; error_.clear(); }
 std::size_t TextureCache::loaded_count() const
 {
     std::size_t count = 0;
     for (const auto& image : images_) count += image.second != nullptr;
+    for (const auto& animation : animations_) count += animation.second != nullptr;
     return count;
 }
 const CachedImage* TextureCache::load(const std::string& key)

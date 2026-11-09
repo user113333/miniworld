@@ -51,6 +51,7 @@ bool ActorRenderer::initialize(TextureCache& textures)
         sprites_[index].texture = image->texture; // Borrowed from the shared cache.
         masks_[index] = image->mask;
     }
+    if (!settlers_.initialize(textures)) { shutdown(); return false; }
     return true;
 }
 
@@ -64,7 +65,7 @@ ActorHandle ActorRenderer::pick(const TileMap& map, const std::vector<ActorView>
 
 void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::vector<ActorView>& actors,
                           const MapView& view,
-                        const ParticleSystem* particles) const
+                        const ParticleSystem* particles, std::uint64_t tick, std::uint64_t generation) const
 {
     glm::vec2 framebuffer_scale;
     SDL_GetRenderScale(renderer, &framebuffer_scale.x, &framebuffer_scale.y);
@@ -73,6 +74,7 @@ void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::
     if (view.radius <= 0.0f) {
         return;
     }
+    settlers_.prepare(actors, scene_view, tick, generation);
     if (particles) {
         particle_renderer_.prepare(*particles, scene_view);
     }
@@ -93,12 +95,16 @@ void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::
                 grouped_[group] = true;
             }
         }
-        draw_entries_.push_back({index, group, tree.ground, tree.variant, tree.id});
+        draw_entries_.push_back({index, no_entry, group, tree.ground, tree.variant, tree.id});
     }
     for (std::size_t index = 0; index < grouped_.size(); ++index) {
         if (!grouped_[index]) {
-            draw_entries_.push_back({no_entry, index, groups[index].ground, 0, groups[index].emitter_id});
+            draw_entries_.push_back({no_entry, no_entry, index, groups[index].ground, 0, groups[index].emitter_id});
         }
+    }
+    for (std::size_t index = 0; index < settlers_.entries().size(); ++index) {
+        const auto& settler = settlers_.entries()[index];
+        draw_entries_.push_back({no_entry, index, no_entry, settler.layout.ground, 0, settler.id});
     }
     std::sort(draw_entries_.begin(), draw_entries_.end(), [](const DrawEntry& a, const DrawEntry& b) {
         if (a.ground.y != b.ground.y) {
@@ -116,6 +122,7 @@ void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::
         if (entry.particle_group != no_entry) {
             particle_renderer_.draw(renderer, groups[entry.particle_group], ParticleKind::smoke, scene_view);
         }
+        if (entry.settler != no_entry) settlers_.draw(renderer, settlers_.entries()[entry.settler]);
         if (entry.actor != no_entry) {
             const ActorSceneEntry& tree = scene_[entry.actor];
             const SDL_FRect destination{tree.minimum.x, tree.minimum.y, tree.size.x, tree.size.y};
@@ -134,6 +141,7 @@ void ActorRenderer::draw(SDL_Renderer* renderer, const TileMap& map, const std::
 
 void ActorRenderer::shutdown()
 {
+    settlers_.shutdown();
     for (Sprite& sprite : sprites_) {
         sprite = {};
     }

@@ -6,7 +6,7 @@ Flecs is now the authoritative actor store and executes ordered simulation syste
 Implementation, review and Debug/Release validation are complete and user-approved.
 
 The colony simulation foundation is also complete and approved.
-Settler simulation logic is implemented; rendering and interaction remain gated below.
+Settler simulation logic and rendering are implemented; interaction awaits approval.
 Construction, houses and ships remain deferred.
 Save/load remains a later milestone.
 
@@ -45,12 +45,34 @@ Thoughts occur every 10–30 simulation seconds, update happiness immediately an
 replace ten-second text timers. Zero happiness deletes the settler and inventory.
 Thresholds, penalties, radii and shared speed are in `SettlerTuning`.
 
-**Next phase requires user approval.** Before rendering, remind the user:
-“You said you will integrate the `.aseprite` reading library yourself before the
-rendering phase.” Do not implement/select/vendor a loader. Settlers are currently
-invisible; thought bubbles, scene selection, the Settlers inspector, queued inventory
-editing and click-to-spawn belong to phases 2 and 3. No automatic replacements,
-houses, ships, reproduction, food or other deferred behavior has been added.
+## Settlers: rendering phase
+
+Phase 2 is implemented using the user-supplied `lib/cute/cute_aseprite.h`, unchanged.
+The actual asset is `res/minifolks/villagers2/MiniLumberjack.aseprite` (not
+`MiniLuberjack`): 32×32, 45 frames, with all required tags present. The application
+texture cache owns decoded RGBA frames, alpha masks and tag durations; consumers
+borrow textures until shutdown. The Assets browser still has no static Aseprite
+preview, but reports runtime animation loading and loaded dimensions accurately.
+
+`src/render/settler_renderer.*` owns presentation-only animation state. Both idle
+clips are chosen randomly at clip boundaries; walk follows movement, work plays
+while cutting after arrival, and death plays once for 0.9 simulation seconds after
+actor removal. These transient visuals retain only a ground position, animation
+and facing, with no inventory, actor or corpse. Regeneration clears them. Frame
+durations use the shared simulation tick, so pause and speed apply consistently.
+Settlers share tree/particle depth order, snapped ground anchors, nearest sampling,
+camera pan/zoom and foot-preserving horizontal flips. Source pixels are unchanged.
+
+Windowless thought bubbles live entirely in `src/gui/thought_bubbles.*`, using the
+same head/ground layout and the simulation's remaining thought timer. They follow
+camera/movement, expire with simulation time, and introduce no input capture.
+A software-rendered scene with active bubbles was visually reviewed; deterministic
+rendering checks cover tag timing, random idle variants, pause, facing, camera
+scaling, death cleanup, regeneration, bubble visibility and overlapping tree depth.
+
+**Phase 3 requires user approval:** scene picking/selection, the Settlers inspector,
+queued inventory editing and click-to-spawn remain unimplemented. No automatic
+replacements, houses, ships, reproduction, food or deferred gameplay was added.
 
 ## Architecture
 
@@ -64,7 +86,7 @@ houses, ships, reproduction, food or other deferred behavior has been added.
 | `src/simulation/systems/` | Deterministic forest, fire, recovery and keyed random sampling |
 | `src/world/` | Terrain/recovery arrays, hex geometry and seeded generation/placement |
 | `src/content/` | Resource-relative catalog, file metadata/status and font byte access; no SDL or ImGui |
-| `src/render/` | SDL terrain/actor/particle drawing, shared PNG texture/mask cache and GLM layout/picking |
+| `src/render/` | SDL terrain/actor/particle drawing, shared PNG/Aseprite texture cache and GLM layout/picking |
 | `src/effects/` | Bounded CPU particles and the read-only actor-to-fire-emitter adapter |
 | `src/gui/` | All ImGui code, tools, menus, windows, DPI/fonts, backend lifecycle, entity explorer and asset browser |
 | `tests/` | Domain, effects, pixel and ECS regressions; fixed seed/runtime fixtures |
@@ -137,7 +159,7 @@ value views, never persistent pointers into ECS storage. GUI tool state stays in
   formats expose metadata and optional preview failures stay in the window.
 - Application owns the catalog and texture cache. Resources resolve from the
   executable's staged `res/`, independent of working directory; complete staging
-  removes stale files on configure/build. The catalog scans once, PNGs decode on
+  removes stale files on configure/build. The catalog scans once, PNGs and Aseprite frames decode on
   demand into shared textures/masks, and regeneration retains presentation assets.
   GUI-owned font bytes outlive the atlas. Consumers detach before texture cleanup,
   and textures are freed before their SDL renderer, including partial startup.
@@ -157,7 +179,7 @@ cmake --build --preset release --parallel 4
 ctest --preset release
 ```
 
-All 22 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
+All 23 CTest suites pass in Debug and Release; both full application builds pass. The Flecs suite checks 24 updated runtime
 checkpoints for three seeds through 400 simulation seconds, including exact actor
 fire state and recovery. Forest regressions verify persistence for 1,200 seconds
 and no births or regrowth. Existing generation fixtures pass.
@@ -180,8 +202,8 @@ and missing-font/sprite failures release ImGui and SDL correctly.
 
 ## Deferred tasks
 
-- [Settlers](tasks/settlers.md): logic complete; rendering awaits the user’s
-  Aseprite integration and approval. Interaction follows rendering approval.
+- [Settlers](tasks/settlers.md): logic and rendering complete; interaction awaits
+  user approval for phase 3.
   Ships, multiple islands, settler fire behavior, houses, mountains and reproduction
   remain outside the approved implementation scope.
 

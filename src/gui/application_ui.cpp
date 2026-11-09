@@ -1,6 +1,7 @@
 #include "application_ui.h"
 #include "island_controls.h"
 #include "simulation_controls.h"
+#include "thought_bubbles.h"
 #include "simulation/simulation.h"
 #include "render/map_renderer.h"
 #include "render/camera.h"
@@ -186,6 +187,8 @@ void ApplicationUi::draw_overlays(const Simulation& simulation, const MapView& v
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     }
     draw_origin_hint(view);
+    const auto frame = frame_state();
+    draw_thought_bubbles(simulation.world().actors(), {view.origin, view.radius, frame.framebuffer_scale});
 }
 
 void ApplicationUi::update_camera(Camera& camera, const MapView& centered)

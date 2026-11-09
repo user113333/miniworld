@@ -45,7 +45,7 @@ void check_cache(SDL_Renderer* renderer)
     ActorRenderer actors;
     test::expect(actors.initialize(textures), "Gameplay assets no longer load through cache");
     const auto* tree = textures.load("map/tree1.png");
-    test::expect(tree && textures.loaded_count() == 6, "Actor initialization did not share the image cache");
+    test::expect(tree && textures.loaded_count() == 7, "Actor initialization did not share the image cache");
     test::MapState map{12, 12, 0, std::vector<Terrain>(144, Terrain::grass), {{{0, 0}, 0, {}}}};
     map.trees.front().id = 1; map.trees.front().burnout_tick = 640;
     actors.draw(renderer, map, test::actor_views(map), {{80, 100}, 20});

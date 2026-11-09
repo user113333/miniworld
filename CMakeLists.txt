@@ -65,10 +65,16 @@ target_include_directories(miniworld_content PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
 target_compile_features(miniworld_content PUBLIC cxx_std_17)
 target_link_libraries(miniworld_content PUBLIC glm::glm)
 
-add_library(miniworld_textures STATIC src/render/texture_cache.cpp)
-target_link_libraries(miniworld_textures PUBLIC miniworld_content SDL3::SDL3)
+add_library(miniworld_textures STATIC
+    src/render/texture_cache.cpp
+    src/render/aseprite_texture.cpp
+    src/render/settler_renderer.cpp
+)
+target_include_directories(miniworld_textures PRIVATE ${PROJECT_SOURCE_DIR}/lib/cute)
+target_link_libraries(miniworld_textures PUBLIC miniworld_content miniworld_effects SDL3::SDL3)
 
 add_library(miniworld_gui STATIC
+    src/gui/thought_bubbles.cpp
     src/gui/application_ui.cpp
     src/gui/asset_browser.cpp
     src/gui/entity_explorer.cpp
@@ -118,6 +124,10 @@ if(BUILD_TESTING)
     target_link_libraries(content_catalog_tests PRIVATE miniworld_content)
     target_compile_definitions(content_catalog_tests PRIVATE TEST_RESOURCE_ROOT="${CMAKE_CURRENT_BINARY_DIR}/res")
     add_test(NAME content.catalog COMMAND content_catalog_tests)
+    add_executable(settler_rendering_tests tests/settler_rendering_tests.cpp src/render/actor_renderer.cpp src/render/particle_renderer.cpp)
+    target_link_libraries(settler_rendering_tests PRIVATE miniworld_gui)
+    add_test(NAME render.settlers COMMAND settler_rendering_tests)
+    set_tests_properties(render.settlers PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
     add_executable(texture_cache_tests tests/texture_cache_tests.cpp src/render/actor_renderer.cpp src/render/particle_renderer.cpp)
     target_link_libraries(texture_cache_tests PRIVATE miniworld_textures miniworld_effects)
     add_test(NAME render.texture_cache COMMAND texture_cache_tests)

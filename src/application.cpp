@@ -131,7 +131,8 @@ void Application::draw_frame(double real_seconds)
     SDL_RenderClear(renderer_);
     SDL_SetRenderScale(renderer_, frame.framebuffer_scale.x, frame.framebuffer_scale.y);
     draw_map(renderer_, simulation_->map(), view);
-    actors_.draw(renderer_, simulation_->map(), simulation_->world().actors(), view, &particles_);
+    actors_.draw(renderer_, simulation_->map(), simulation_->world().actors(), view, &particles_,
+                 simulation_->clock().ticks(), simulation_->world_generation());
     SDL_SetRenderScale(renderer_, 1.0f, 1.0f);
     ui_.render(renderer_);
     SDL_RenderPresent(renderer_);

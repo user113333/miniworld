@@ -5,6 +5,8 @@
 #include <memory>
 #include <unordered_map>
 
+struct CachedAnimation;
+
 struct CachedImage {
     CachedImage() = default;
     CachedImage(const CachedImage&) = delete;
@@ -17,17 +19,19 @@ struct CachedImage {
 class TextureCache {
 public:
     ~TextureCache();
-    TextureCache() = default;
+    TextureCache();
     TextureCache(const TextureCache&) = delete;
     TextureCache& operator=(const TextureCache&) = delete;
     void initialize(SDL_Renderer* renderer, content::Catalog& catalog);
     void shutdown(); // Detach GUI/actor consumers before this; renderer must still live.
     const CachedImage* load(const std::string& key);
+    const CachedAnimation* load_animation(const std::string& key);
     std::size_t loaded_count() const;
     const std::string& error() const { return error_; }
 private:
     SDL_Renderer* renderer_ = nullptr;
     content::Catalog* catalog_ = nullptr;
     std::unordered_map<std::string, std::unique_ptr<CachedImage>> images_;
+    std::unordered_map<std::string, std::unique_ptr<CachedAnimation>> animations_;
     std::string error_;
 };

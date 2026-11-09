@@ -58,7 +58,7 @@ bool Catalog::initialize(const std::filesystem::path& root)
         if (folder) { asset.type = AssetType::folder; asset.loader = "Navigation"; }
         else if (ext == ".png") { asset.type = AssetType::image; asset.loader = "SDL PNG"; asset.status = LoadStatus::unloaded; }
         else if (ext == ".ttf") { asset.type = AssetType::font; asset.loader = "Font bytes"; asset.status = LoadStatus::unloaded; }
-        else if (ext == ".aseprite") { asset.type = AssetType::source; asset.diagnostic = "Source only; Aseprite decoding/export is not supported."; }
+        else if (ext == ".aseprite") { asset.type = AssetType::source; asset.loader = "cute Aseprite animation"; asset.diagnostic = "No static preview; runtime animation loading is available."; }
         else if (ext == ".md" || ext == ".txt" || asset.name.find("LICENSE") != std::string::npos) {
             asset.type = AssetType::document; asset.diagnostic = "Metadata only; no document preview.";
         } else asset.diagnostic = "No runtime loader for this file format.";

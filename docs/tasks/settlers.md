@@ -1,6 +1,6 @@
 # Settlers
 
-Status: **approved gameplay specification; not yet implemented**.
+Status: **logic and rendering implemented; ImGui interaction awaits phase 3 approval**.
 
 Implement **only** the scope below, in order: **1. logic, 2. rendering, 3. ImGui**. Complete and test one phase before starting the next. Do not introduce houses, ships, reproduction, food, or other features from the old settlers plan.
 

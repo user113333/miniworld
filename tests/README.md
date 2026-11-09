@@ -90,3 +90,10 @@ bounded A*, smooth route following and invalidation, elapsed idle pacing,
 autonomous activities, inventory overflow, exclusive harvesting/planting,
 exact sapling growth (including between world-rule ticks), fire interruption,
 timed thoughts, happiness/death, pause/speed/inactivity and regeneration.
+
+`render.settlers` loads the real Aseprite with the supplied cute library and checks
+cache reuse, RGBA transparency/nearest sampling, tag durations/frame boundaries,
+random idle clips, walk/work, pause, facing, camera scaling, transient death and
+regeneration cleanup. It compares overlapping tree/settler pixels against explicit
+depth order and checks windowless bubble visibility against the thought timer.
+It saves `/tmp/miniworld-settler-render.png` for visual review with SDL's dummy driver.

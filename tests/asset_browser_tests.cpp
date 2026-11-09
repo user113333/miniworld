@@ -106,7 +106,7 @@ void check_browser()
     Gui gui(temp.path);
     const auto before = gui.simulation.world().actors();
     const auto* tree = gui.textures.load("map/tree1.png");
-    test::expect(gui.textures.loaded_count() == 5, "World did not load exactly its five named bindings");
+    test::expect(gui.textures.loaded_count() == 6, "World did not load its five tree bindings and settler animation");
     gui.frame(); gui.frame();
     auto* bar = ImGui::FindWindowByName("##MainMenuBar");
     test::expect(bar != nullptr, "Missing main menu bar");
@@ -119,7 +119,7 @@ void check_browser()
                  "Optional corrupt preview closed the browser or has no error");
     gui.capture("error");
     gui.item(grid, "map"); gui.key(ImGuiKey_Enter);
-    test::expect(gui.textures.load("map/tree1.png") == tree && gui.textures.loaded_count() == 7 &&
+    test::expect(gui.textures.load("map/tree1.png") == tree && gui.textures.loaded_count() == 8 &&
                  gui.content.find("map/ship.png")->status == content::LoadStatus::loaded &&
                  gui.content.find("map/house.png")->status == content::LoadStatus::loaded,
                  "Map navigation failed or browser duplicated gameplay textures");
@@ -165,7 +165,7 @@ void check_browser()
     gui.frame(); gui.capture("dpi");
     ImGui::GetStyle() = original_style;
     gui.simulation.regenerate(); gui.frame();
-    test::expect(gui.textures.load("map/tree1.png") == tree && gui.textures.loaded_count() == 7 &&
+    test::expect(gui.textures.load("map/tree1.png") == tree && gui.textures.loaded_count() == 8 &&
                  gui.simulation.clock().ticks() == 0 && gui.simulation.world().actors().size() == before.size(),
                  "Regeneration discarded assets or browsing changed simulation state");
 }
